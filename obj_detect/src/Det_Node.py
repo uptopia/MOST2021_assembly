@@ -1,29 +1,35 @@
+#!/usr/bin/env python3
 import cv2
-from matplotlib.pyplot import box
+import torch
+import argparse
+import os
+# from matplotlib.pyplot import box
 import rospy
+import sys
+sys.path.insert(1, '/opt/installer/open_cv/cv_bridge/lib/python3/dist-packages/')
+sys.path.append(os.path.dirname(os.path.join(os.getcwd(), os.path.pardir))+ "/src")
+ws_path = os.path.dirname(os.path.join(os.getcwd(), os.path.pardir)) + "/src/obj_detect/"
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image as msg_Image
 
 from tool.utils import *
 from tool.torch_utils import *
 from tool.darknet2pytorch import Darknet
-import torch
-import argparse
 
-from affordance2.msg import bbox, bboxes
+from obj_detect.msg import bbox, bboxes
 
 use_cuda = True
 show_res = True
-n = 51
+n = 1
 
 def get_args():
     parser = argparse.ArgumentParser('Test your image or video by trained model.')
-    parser.add_argument('-namesfile', type=str, default='./data/obj.names',
+    parser.add_argument('-namesfile', type=str, default= ws_path + 'data/obj.names',
                         help='path of name file', dest='namesfile')
-    parser.add_argument('-cfgfile', type=str, default='./cfg/yolov4-components.cfg',
+    parser.add_argument('-cfgfile', type=str, default= ws_path + 'cfg/yolov4-components.cfg',
                         help='path of cfg file', dest='cfgfile')
     parser.add_argument('-weightfile', type=str,
-                        default='./weights/yolov4-components_final_20220426.weights',
+                        default= ws_path + 'weights/yolov4-components_final_20220426.weights',
                         help='path of trained model.', dest='weightfile')
     args, unknown = parser.parse_known_args()
     return args
@@ -35,7 +41,8 @@ class Det_Node:
         self.bridge = CvBridge()
         rospy.Subscriber("/camera/color/image_raw_workspace", msg_Image, self.imageCallback)
         self.pub = rospy.Publisher('/yolov4_bboxes', bboxes, queue_size=10)
-        self.init_model(cfg, w)
+        self.init_model(cfg, w, namesfile)
+        rospy.spin()
 
     def init_model(self, cfg, w, namesfile):
         m = Darknet(cfg)
@@ -50,11 +57,12 @@ class Det_Node:
         if show_res:
             res, boxes = self.det(cv_image)
             boxes = sorted(boxes)
-            cv2.imshow("cv", res)
+            cv2.imshow("obj_detect", res)
             key = cv2.waitKey(1)
             if key == ord("s"):
-                f = open("sampling_data/"+str(n)+".txt", "w")
-                cv2.imwrite("sampling_data/"+str(n)+".jpg", cv_image)
+                file_name = "obj_detect_" + str(n)
+                f = open(file_name + ".txt", "w")
+                cv2.imwrite(file_name + ".jpg", cv_image)
                 for bb in boxes[0]:
                     w = bb[2] - bb[0]
                     h = bb[3] - bb[1]
@@ -97,6 +105,6 @@ class Det_Node:
         self.pub.publish(bbs)
 
 if __name__ == "__main__":
-    args = get_args()    
+    args = get_args()
     m = Det_Node(args.cfgfile, args.weightfile, args.namesfile)
-    rospy.spin()
+
