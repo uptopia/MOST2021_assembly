@@ -15,15 +15,29 @@ from affordance2.msg import bbox, bboxes
 use_cuda = True
 show_res = True
 n = 51
+
+def get_args():
+    parser = argparse.ArgumentParser('Test your image or video by trained model.')
+    parser.add_argument('-namesfile', type=str, default='./data/obj.names',
+                        help='path of name file', dest='namesfile')
+    parser.add_argument('-cfgfile', type=str, default='./cfg/yolov4-components.cfg',
+                        help='path of cfg file', dest='cfgfile')
+    parser.add_argument('-weightfile', type=str,
+                        default='./weights/yolov4-components_final_20220426.weights',
+                        help='path of trained model.', dest='weightfile')
+    args, unknown = parser.parse_known_args()
+    return args
+
+
 class Det_Node:
-    def __init__(self,cfg, w) -> None:
+    def __init__(self, cfg, w, namesfile) -> None:
         rospy.init_node("Det_Node")
         self.bridge = CvBridge()
-        rospy.Subscriber("/camera/color/image_raw", msg_Image, self.imageCallback) #/camera/color/image_raw
+        rospy.Subscriber("/camera/color/image_raw_workspace", msg_Image, self.imageCallback)
         self.pub = rospy.Publisher('/yolov4_bboxes', bboxes, queue_size=10)
         self.init_model(cfg, w)
 
-    def init_model(self, cfg, w, namesfile='src/affordance2/src/111_project/obj.names'): #'111_project/obj.names'):
+    def init_model(self, cfg, w, namesfile):
         m = Darknet(cfg)
         m.print_network()
         m.load_weights(w)
@@ -39,8 +53,8 @@ class Det_Node:
             cv2.imshow("cv", res)
             key = cv2.waitKey(1)
             if key == ord("s"):
-                f = open("sampling_data/20220426/"+str(n)+".txt", "w")
-                cv2.imwrite("sampling_data/20220426/"+str(n)+".jpg", cv_image)
+                f = open("sampling_data/"+str(n)+".txt", "w")
+                cv2.imwrite("sampling_data/"+str(n)+".jpg", cv_image)
                 for bb in boxes[0]:
                     w = bb[2] - bb[0]
                     h = bb[3] - bb[1]
@@ -83,7 +97,6 @@ class Det_Node:
         self.pub.publish(bbs)
 
 if __name__ == "__main__":
-    cfg = "src/affordance2/src/111_project/yolov4-components.cfg" #"./111_project/yolov4-components.cfg"
-    w = "src/affordance2/src/111_project/yolov4-components_final_20220426.weights" #"./111_project/yolov4-components_final_20220426.weights"
-    m = Det_Node(cfg, w)
+    args = get_args()    
+    m = Det_Node(args.cfgfile, args.weightfile, args.namesfile)
     rospy.spin()

@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+
+<launch>
+  <!-- Open Realsense -->
+  <arg name="depth_width"               default="640"/>
+  <arg name="depth_height"              default="480"/>
+  <arg name="enable_depth"              default="true"/>
+  <arg name="color_width"               default="640"/>
+  <arg name="color_height"              default="480"/>
+  <arg name="enable_color"              default="true"/>
+  <arg name="depth_fps"                 default="15"/>
+  <arg name="color_fps"                 default="15"/>
+  <arg name="enable_pointcloud"         default="false"/>
+  <arg name="enable_sync"               default="false"/>
+  <arg name="align_depth"               default="true"/>
+  <arg name="publish_tf"                default="true"/>
+  <arg name="tf_publish_rate"           default="0"/>
+  <arg name="filters"                   default="pointcloud"/>
+
+  <!-- Include main launch file -->
+  <!-- <include file="$(find realsense2_camera)/launch/rs_camera.launch">-->
+  <include file="$(find realsense2_camera)/launch/rs_rgbd.launch"> 
+    <arg name="depth_width"               value="$(arg depth_width      )"/>
+    <arg name="depth_height"              value="$(arg depth_height     )"/>
+    <arg name="enable_depth"              value="$(arg enable_depth     )"/>
+    <arg name="color_width"               value="$(arg color_width      )"/>
+    <arg name="color_height"              value="$(arg color_height     )"/>
+    <arg name="enable_color"              value="$(arg enable_color     )"/>
+    <arg name="depth_fps"                 value="$(arg depth_fps        )"/>
+    <arg name="color_fps"                 value="$(arg color_fps        )"/>
+    <arg name="enable_pointcloud"         value="$(arg enable_pointcloud)"/>
+    <arg name="enable_sync"               value="$(arg enable_sync      )"/>
+    <arg name="align_depth"               value="$(arg align_depth      )"/>
+    <arg name="publish_tf"                value="$(arg publish_tf       )"/>
+    <arg name="tf_publish_rate"           value="$(arg tf_publish_rate  )"/>
+    <arg name="filters"                   value="$(arg filters          )"/>
+  </include>
+  
+  <!-- Select Workspace -->
+  <node pkg="select_workspace" type="select_workspace.py" name="select_workspace" output="screen"/>
+
+  <!-- YOLOv4 detect popcorn&juice boundingboxes -->
+  <!-- YOLOv4 (tiny-yolo) -->
+  <arg name="namesfile" 		default="$(find obj_detect)/data/obj.names"/>
+  <arg name="cfgfile" 			default="$(find obj_detect)/cfg/yolov4-components.cfg"/>
+  <arg name="weightfile" 		default="$(find obj_detect)/weights/yolov4-components_final_20220426.weights"/>
+
+  <node pkg="obj_detect" type="Det_Node.py" name="obj_detect" 
+        output="screen" args="-namesfile $(arg namesfile) -cfgfile $(arg cfgfile)  -weightfile $(arg weightfile)"/>
+
+</launch>
