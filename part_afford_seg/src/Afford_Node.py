@@ -2,20 +2,33 @@
 import cv2
 from matplotlib.pyplot import box
 import rospy
+import os
+import sys
+sys.path.insert(1, '/opt/installer/open_cv/cv_bridge/lib/python3/dist-packages/')
+sys.path.append(os.path.dirname(os.path.join(os.getcwd(), os.path.pardir))+ "/src")
+ws_path = os.path.dirname(os.path.join(os.getcwd(), os.path.pardir)) + "/src/part_afford_seg/"
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image as msg_Image
 
 from tool.utils import *
 from tool.torch_utils import *
 from tool.darknet2pytorch import Darknet
+
 import torch
 import argparse
 from seg_model import build_seg_model
 
-from affordance2.msg import bbox, bboxes
-from affordance2.msg import seg_out, center
+from obj_detect.msg import bbox, bboxes
+from part_afford_seg.msg import seg_out, center
 
 show_all_mask = True
+
+def get_args():
+    parser = argparse.ArgumentParser('Parse trained model.')
+    parser.add_argument('-pthfile', type=str, default= ws_path + 'model/components_20220427.pth',
+                        help='path of pth file', dest='pthfile')
+    args, unknown = parser.parse_known_args()
+    return args
 
 def get_centroid(th):
     contours, hierarchy = cv2.findContours(th,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
@@ -57,13 +70,14 @@ def thresh_mask_terminal(grid_image):
     return c1_c, c2_c, angle*180/math.pi
 
 class Afford_Node:
-    def __init__(self) -> None:
+    def __init__(self, pthfile) -> None:
         rospy.init_node("Afford_Node")
         self.bridge = CvBridge()
-        self.seg_m = build_seg_model(model="mobilenet", class_num=6, ckpt="./111_project/components_20220427.pth")
+        self.seg_m = build_seg_model(model="mobilenet", class_num=6, ckpt=pthfile)
         rospy.Subscriber("/camera/color/image_raw_workspace", msg_Image, self.imageCallback)
         rospy.Subscriber("/yolov4_bboxes", bboxes, self.bboxes_Callback)
         self.pub = rospy.Publisher('/seg_out', seg_out, queue_size=1)
+        rospy.spin()
 
     def imageCallback(self, img_msg):
         self.cv_image = self.bridge.imgmsg_to_cv2(img_msg, "bgr8")
@@ -132,10 +146,10 @@ class Afford_Node:
         self.pub.publish(seg_o)
 
         if show_all_mask:
-            cv2.imshow("mask_all", mask_all)
+            cv2.imshow("part_afford_seg all masks", mask_all)
 
         
 
 if __name__ == "__main__":
-    Afford_Node()
-    rospy.spin()
+    args = get_args()
+    Afford_Node(args.pthfile)
