@@ -40,7 +40,8 @@ class Det_Node:
         rospy.init_node("Det_Node")
         self.bridge = CvBridge()
         rospy.Subscriber("/camera/color/image_raw_workspace", msg_Image, self.imageCallback)
-        self.pub = rospy.Publisher('/yolov4_bboxes', bboxes, queue_size=10)
+        self.pub_other_objs = rospy.Publisher('/yolov4_other_objs_bboxes', bboxes, queue_size=10)
+        self.pub_motors = rospy.Publisher('/yolov4_motors_bboxes', bboxes, queue_size=10)
         self.init_model(cfg, w, namesfile)
         rospy.spin()
 
@@ -90,7 +91,9 @@ class Det_Node:
     def msg_publish(self, img, boxes):
         width = img.shape[1]
         height = img.shape[0]
-        bbs = bboxes()
+        bbs_other_objs = bboxes()
+        bbs_motors = bboxes()
+
         for i in range(len(boxes)):
             bb = bbox()
             box = boxes[i]
@@ -100,9 +103,13 @@ class Det_Node:
             bb.ymax = int(box[3] * height)
             bb.score = box[4]
             bb.class_ = box[6]
-            bbs.bboxes.append(bb)
+            if(box[6] == 2):
+                bbs_motors.bboxes.append(bb)
+            else:
+                bbs_other_objs.bboxes.append(bb)
 
-        self.pub.publish(bbs)
+        self.pub_motors.publish(bbs_motors)
+        self.pub_other_objs.publish(bbs_other_objs)
 
 if __name__ == "__main__":
     args = get_args()
