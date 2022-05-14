@@ -5,12 +5,6 @@ import rospy
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image as msg_Image
 
-from tool.utils import *
-from tool.torch_utils import *
-from tool.darknet2pytorch import Darknet
-import torch
-import argparse
-
 from affordance2.msg import bbox, bboxes
 
 show_res = True
