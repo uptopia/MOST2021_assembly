@@ -1,16 +1,15 @@
-from select import select
+#!/usr/bin/env python3
 import cv2
-from matplotlib.pyplot import box
-import rospy
+import sys
+sys.path.insert(1, '/opt/installer/open_cv/cv_bridge/lib/python3/dist-packages/')
 from cv_bridge import CvBridge, CvBridgeError
+
+import rospy
 from sensor_msgs.msg import Image as msg_Image
 
-from affordance2.msg import bbox, bboxes
-
 show_res = True
-# n = 1
-n = 31
-dir = "sampling_data/"
+n = 1
+# dir = "./sampling_data/"
 class Select_workspace_Node:
     def __init__(self) -> None:
         rospy.init_node("Select_workspace_Node")
@@ -26,11 +25,12 @@ class Select_workspace_Node:
         if show_res:
             global n 
             # cv2.imshow("cv", cv_image)
-            cv2.imshow("cv_ws", select_ws)
+            cv2.imshow("select_workspace", select_ws)
             key = cv2.waitKey(1)
             if key == ord("s"):
-                cv2.imwrite(dir+str(n)+".jpg", select_ws)
-                print("save "+str(n)+".jpg")
+                file_name = "select_workspace_" + str(n) +".jpg"
+                cv2.imwrite(file_name, select_ws)
+                print("save " + file_name)
                 n+=1
 
         select_ws = self.bridge.cv2_to_imgmsg(select_ws, "bgr8")
