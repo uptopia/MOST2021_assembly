@@ -18,3 +18,29 @@
 ### 2. 部件分割 (Part Segmentation) part_afford_seg
 ### 3. 馬達姿態估測 (Motor Pose Estimation) motor_pose_est
 ### 4. 夾取姿態估測 (Grasp Pose Estimation) grasp_pose_est
+
+
+mkdir MOST2021_assembly
+cd MOST2021_assembly
+git clone https://github.com/uptopia/MOST2021_assembly.git src
+catkin_make
+
+<terminal 1>
+cd ~/realsense_ros
+. devel/setup.bash
+roslaunch realsense2_camera rs_rgbd.launch
+
+<terminal 2>
+cd ~/MOST2021_assembly
+. devel/setup.bash
+rosrun select_workspace select_workspace.py
+
+<terminal 3>
+cd ~/MOST2021_assembly
+. devel/setup.bash
+rosrun obj_detect Det_Node.py
+
+<terminal 4>
+cd ~/MOST2021_assembly
+. devel/setup.bash
+rosrun part_afford_seg Afford_Node.py
