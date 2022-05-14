@@ -85,7 +85,7 @@ class Afford_Node:
     def bboxes_Callback(self, bbox_msg):
         n = 0
         seg_o = seg_out() 
-        need_seg_class = [0,3,4]
+        need_seg_class = ['screw', 'terminal+', 'terminal-'] #[0,3,4]
 
         if show_all_mask:
             mask_all = np.zeros((430,660,3))
@@ -93,7 +93,7 @@ class Afford_Node:
         for bb in bbox_msg.bboxes:
             roi = self.cv_image[bb.ymin:bb.ymax, bb.xmin:bb.xmax]
 
-            if bb.class_ in need_seg_class:
+            if bb.object_name in need_seg_class:
                 grid_image = self.seg_m.run(roi)
                 grid_image = cv2.resize(grid_image, (bb.xmax-bb.xmin, bb.ymax-bb.ymin))
                 cv_im = self.bridge.cv2_to_imgmsg(grid_image, "64FC3")
@@ -104,7 +104,7 @@ class Afford_Node:
                 seg_o.roi.append(cv_im)
 
 
-            if bb.class_ == 0:
+            if bb.object_name == 'screw': #bb.object_name == 0:
                 c = center()
                 c1_c, c2_c, angle = thresh_mask_screw(grid_image)
                 c.check = True
@@ -115,13 +115,13 @@ class Afford_Node:
                 c.angle = angle
                 seg_o.centers.append(c)
 
-            if bb.class_ == 1 or bb.class_ == 2 :
+            if bb.object_name == 'screw_n' or bb.object_name == 'motor': #bb.object_name == 1 or bb.object_name == 2 :
                 c = center()
                 c.check = False
                 seg_o.centers.append(c)
             
     
-            if bb.class_ == 3 or bb.class_ == 4:
+            if bb.object_name == 'terminal+' or bb.object_name == 'terminal-': #bb.object_name == 3 or bb.object_name == 4:
                 c = center()
                 c1_c, c2_c, angle = thresh_mask_terminal(grid_image)
                 c.check = True

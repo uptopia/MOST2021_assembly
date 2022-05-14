@@ -70,7 +70,7 @@ class Det_Node:
                     x = bb[0] + w/2
                     y = bb[1] + h/2 
                     # data = "{} {:.6f} {:.6f} {:.6f} {:.6f}\n".format(bb[6], round(x,6), round(y,6), round(w,6), round(h,6))
-                    data = "{} {:.6f} {:.6f} {:.6f} {:.6f}\n".format(bb[6], x, y, w, h)
+                    data = "{} {:.6f} {:.6f} {:.6f} {:.6f}\n".format(self.class_names[bb[6]], x, y, w, h)
                     print(data)
                     f.write(data)
                 n+=1
@@ -102,8 +102,8 @@ class Det_Node:
             bb.xmax = int(box[2] * width)
             bb.ymax = int(box[3] * height)
             bb.score = box[4]
-            bb.class_ = box[6]
-            if(box[6] == 2):
+            bb.object_name = self.class_names[box[6]]
+            if(box[6] == 2):  #motor
                 bbs_motors.bboxes.append(bb)
             else:
                 bbs_other_objs.bboxes.append(bb)
