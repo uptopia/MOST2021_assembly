@@ -139,7 +139,7 @@ void motor_cloud_cb(const sensor_msgs::PointCloud2ConstPtr& organized_cloud_msg)
     int width = organized_cloud_msg->width;
     int points = height * width;
 
-    // cout<<"(height, width) = "<<height<<", "<<width<<endl;
+    cout<<"(height, width) = "<<height<<", "<<width<<endl;
     if((points==0))// && (save_organized_cloud ==true))
     {
         cout<<"PointCloud No points!!!!!!\n";
@@ -163,12 +163,10 @@ void motor_cloud_cb(const sensor_msgs::PointCloud2ConstPtr& organized_cloud_msg)
             // 2D pixel mapping to 3D points
             //=========================================//
             motor_all[n].depth_cloud = boost::make_shared<pcl::PointCloud<PointTRGB>>();
-            int x_shift = 150;  //TODO: unknown bug
-            int y_shift = 270;  //TODO: unknown bug
-            int xmin = x_shift + motor_all[n].box_pixel.xmin;
-            int xmax = x_shift + motor_all[n].box_pixel.xmax;
-            int ymin = y_shift + motor_all[n].box_pixel.ymin;
-            int ymax = y_shift + motor_all[n].box_pixel.ymax;
+            int xmin = motor_all[n].box_pixel.xmin;
+            int xmax = motor_all[n].box_pixel.xmax;
+            int ymin = motor_all[n].box_pixel.ymin;
+            int ymax = motor_all[n].box_pixel.ymax;
 
             // //Ensure the 2D pixels are inside image's max width, height
             // if(xmin < 0) xmin = 114;//186;//0;
@@ -179,11 +177,13 @@ void motor_cloud_cb(const sensor_msgs::PointCloud2ConstPtr& organized_cloud_msg)
             cout<< "\tPixel (xmin, xmax, ymin, ymax) = "<< xmin << ", " << xmax <<", " << ymin << ", " << ymax << endl;
 
             //Map 2D pixel to 3D points
+            int x_shift = 370;  //!!!!Change according to select_workspace
+            int y_shift = 150;  //!!!!Change according to select_workspace
             for(int i = xmin; i <= xmax; i++)
             {
                 for(int j = ymin; j<= ymax; j++)
                 {
-                    PointTRGB depth_pt = organized_cloud_ori->at(i, j);
+                    PointTRGB depth_pt = organized_cloud_ori->at(x_shift + i, y_shift + j);
                     if(pcl_isfinite(depth_pt.x) && pcl_isfinite(depth_pt.y) && pcl_isfinite(depth_pt.z))
                     {
                         motor_all[n].depth_cloud->push_back(depth_pt);
