@@ -19,7 +19,12 @@
 ### 3. 馬達姿態估測 (Motor Pose Estimation) motor_pose_est
 ### 4. 夾取姿態估測 (Grasp Pose Estimation) grasp_pose_est
 
+<img src="readme_img/demo_graph.png" alt="drawing" width="300"/>  
 
+rqt_graph 
+<img src="readme_img/rosgraph_20220520_new.png" alt="drawing" width="300"/>  
+
+```
 mkdir MOST2021_assembly
 cd MOST2021_assembly
 git clone https://github.com/uptopia/MOST2021_assembly.git src
@@ -44,3 +49,14 @@ rosrun obj_detect Det_Node.py
 cd ~/MOST2021_assembly
 . devel/setup.bash
 rosrun part_afford_seg Afford_Node.py
+
+<terminal 5>
+cd ~/MOST2021_assembly
+. devel/setup.bash
+rosrun motor_pose motor_pose
+
+<terminal 6>
+cd ~/MOST2021_assembly
+. devel/setup.bash
+rosrun get_screw_cloud get_screw_cloud
+```
