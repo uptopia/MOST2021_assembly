@@ -93,6 +93,9 @@ class Afford_Node:
         for bb in bbox_msg.bboxes:
             roi = self.cv_image[bb.ymin:bb.ymax, bb.xmin:bb.xmax]
 
+            seg_o.bbox_xmin = bb.xmin
+            seg_o.bbox_ymin = bb.ymin
+
             if bb.object_name in need_seg_class:
                 grid_image = self.seg_m.run(roi)
                 grid_image = cv2.resize(grid_image, (bb.xmax-bb.xmin, bb.ymax-bb.ymin))
