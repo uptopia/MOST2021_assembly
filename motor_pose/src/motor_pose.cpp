@@ -1,5 +1,6 @@
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <visualization_msgs/Marker.h>
 #include <pcl_conversions/pcl_conversions.h> //"pcl::fromROSMsg"
 
 #include <iostream>
@@ -24,15 +25,8 @@
 
 using namespace std;
 
-typedef pcl::PointXYZ PointT;
 typedef pcl::PointXYZRGB PointTRGB;
 typedef boost::shared_ptr<pcl::PointCloud<PointTRGB>> PointCloudTRGBPtr;
-
-struct Center2D
-{
-    int x;
-    int y;
-};
 
 struct Center3D
 {
@@ -51,66 +45,48 @@ struct Box2D
 
 struct Motor
 {
-    std::string obj_class;
-    float score;            //probability
     Box2D box_pixel;
-    Center2D center_pixel;
     Center3D center_point;
-    PointCloudTRGBPtr depth_cloud;
-    PointCloudTRGBPtr rgb_cloud;
+    PointCloudTRGBPtr motor_bbox_cloud;
+    PointCloudTRGBPtr motor_cloud;
 };
 
 std::vector<Motor> motor_all{};
 
-bool save_organized_cloud = true;
 std::string file_path_cloud_organized = "organized_cloud_tmp.pcd";
 pcl::PointCloud<PointTRGB>::Ptr organized_cloud_ori(new pcl::PointCloud<PointTRGB>);
 
-ros::Publisher top3_cloud_pub, motor_cloud_pub;
-sensor_msgs::PointCloud2 top3_clouds_msg;
-sensor_msgs::PointCloud2 top3_clouds_stock_msg;
+ros::Publisher motor_cloud_pub, motor_pose_pub;
+sensor_msgs::PointCloud2 motor_cloud_msg;
 
-void estimate_motor_pose(pcl::PointCloud<PointTRGB>::Ptr motor, pcl::PointCloud<PointTRGB>::Ptr motor_no_plane)
+void estimate_motor_pose(pcl::PointCloud<PointTRGB>::Ptr motor_bbox_cloud, pcl::ModelCoefficients::Ptr coeff_scene_plane, pcl::PointCloud<PointTRGB>::Ptr motor_cloud, pcl::ModelCoefficients::Ptr coeff_cylinder)
 {
-    // load motor
-    // pcl::io::loadPCDFile("/home/upup/Downloads/MOST2022/src/motor_pose/motor_new.pcd", *motor);
-    cout << "Motor point size: " << motor->size() << endl;
-    
-    if(motor->size()>0)
-    {   
-        pcl::ModelCoefficients::Ptr coeff_plane(new pcl::ModelCoefficients);
-        pcl::PointIndices::Ptr inlier_plane(new pcl::PointIndices);
-        pcl::SACSegmentation<PointTRGB> seg_plane;
-        seg_plane.setOptimizeCoefficients(true);
-        seg_plane.setModelType(pcl::SACMODEL_PLANE);
-        seg_plane.setMethodType(pcl::SAC_RANSAC);
-        seg_plane.setDistanceThreshold(0.003);
-        seg_plane.setInputCloud(organized_cloud_ori);
-        seg_plane.segment(*inlier_plane, *coeff_plane);
-
-        // pcl::PointCloud<PointTRGB>::Ptr motor_no_plane(new pcl::PointCloud<PointTRGB>);
+    if(motor_bbox_cloud->size()>0)
+    {
+        float plane_distance_thr = 0.02;
         pcl::PointCloud<PointTRGB>::Ptr removed(new pcl::PointCloud<PointTRGB>);
-        for(int n = 0; n<motor->points.size(); n++)
+
+        for(int n = 0; n < motor_bbox_cloud->points.size(); n++)
         {
-            PointTRGB pt = motor->points[n];
-            if(abs(coeff_plane->values[0]*pt.x + coeff_plane->values[1]*pt.y +coeff_plane->values[2]*pt.z +coeff_plane->values[3])>0.015 )
-                motor_no_plane->push_back(pt);
+            PointTRGB pt = motor_bbox_cloud->points[n];
+
+            if(abs(coeff_scene_plane->values[0]*pt.x + coeff_scene_plane->values[1]*pt.y + coeff_scene_plane->values[2]*pt.z + coeff_scene_plane->values[3]) > plane_distance_thr)
+                motor_cloud->push_back(pt);
             else
                 removed->push_back(pt);
         }
-        cout << "motor_no_plane point size: " << motor_no_plane->size() << endl;
 
         //normal estimation
         pcl::PointCloud<pcl::Normal>::Ptr motor_normal(new pcl::PointCloud<pcl::Normal>);
         pcl::search::KdTree<PointTRGB>::Ptr tree(new pcl::search::KdTree<PointTRGB>());
         pcl::NormalEstimation<PointTRGB, pcl::Normal> ne;
         ne.setSearchMethod(tree);
-        ne.setInputCloud(motor_no_plane);
+        ne.setInputCloud(motor_cloud);
         ne.setKSearch(50);
         ne.compute(*motor_normal);
 
         // ransac cylinder to motor
-        pcl::ModelCoefficients::Ptr coeff_cylinder (new pcl::ModelCoefficients);
+        // pcl::ModelCoefficients::Ptr coeff_cylinder (new pcl::ModelCoefficients);
         pcl::PointIndices::Ptr inliers_cylinder(new pcl::PointIndices);
         pcl::SACSegmentationFromNormals<PointTRGB, pcl::Normal> seg;
         seg.setOptimizeCoefficients(true);
@@ -120,16 +96,22 @@ void estimate_motor_pose(pcl::PointCloud<PointTRGB>::Ptr motor, pcl::PointCloud<
         seg.setMaxIterations(10000);
         seg.setDistanceThreshold(0.05);
         seg.setRadiusLimits(0, 0.1);
-        seg.setInputCloud(motor_no_plane);
+        seg.setInputCloud(motor_cloud);
         seg.setInputNormals(motor_normal);
         seg.segment(*inliers_cylinder, *coeff_cylinder);
-        //point_on_axis.x,y,z; axis_direction.x,y,z; radius
-        std::cerr << "Cylinder coeff" << *coeff_cylinder << endl; 
-        coeff_cylinder->values[6] = 0.0696/2.0;
+        std::cerr << "Cylinder coeff: " //<< *coeff_cylinder << endl;
+                    << "\n\tPoint_on_axis.x = " << coeff_cylinder->values[0]
+                    << "\n\tPoint_on_axis.y = " << coeff_cylinder->values[1]
+                    << "\n\tPoint_on_axis.z = " << coeff_cylinder->values[2]
+                    << "\n\tAxis_direction.x = " << coeff_cylinder->values[3]
+                    << "\n\tAxis_direction.y = " << coeff_cylinder->values[4]
+                    << "\n\tAxis_direction.z = " << coeff_cylinder->values[5]
+                    << "\n\tCylinder Radius = " << coeff_cylinder->values[6]
+                    << endl;
 
         //centroid
         PointTRGB min_point, max_point, center_point;    
-        pcl::getMinMax3D(*motor_no_plane, min_point, max_point);
+        pcl::getMinMax3D(*motor_cloud, min_point, max_point);
         center_point.x = (min_point.x + max_point.x)/2;
         center_point.y = (min_point.y + max_point.y)/2;
         center_point.z = (min_point.z + max_point.z)/2;
@@ -141,114 +123,136 @@ void estimate_motor_pose(pcl::PointCloud<PointTRGB>::Ptr motor, pcl::PointCloud<
         coeff_cylinder->values[1] = center_point.y;
         coeff_cylinder->values[2] = center_point.z;//point_on_axis??????????? CHECK
             
+        // // === Use PCL_VISUALIZER to check Segmentation Result ===//
+        // pcl::PointCloud<PointTRGB>::Ptr motor_cylinder(new pcl::PointCloud<PointTRGB>);
         // pcl::ExtractIndices<PointTRGB> extract;
-        // pcl::ExtractIndices<pcl::Normal> extract_normals;
-        // extract.setInputCloud(motor_no_plane);
+        // extract.setInputCloud(motor_cloud);
         // extract.setIndices(inliers_cylinder);
         // extract.setNegative(false);
-        // pcl::PointCloud<PointTRGB>::Ptr cylinder(new pcl::PointCloud<PointTRGB>);
-        // extract.filter(*cylinder);
+        // extract.filter(*motor_cylinder);
 
         // pcl::visualization::PCLVisualizer::Ptr view(new pcl::visualization::PCLVisualizer("motor viewer"));
         // view->removeAllPointClouds();
         // view->setBackgroundColor(0, 0, 0);
-        // view->addCoordinateSystem(0.2f);
+        // view->addCoordinateSystem(0.02f);
 
-        // pcl::visualization::PointCloudColorHandlerCustom<PointTRGB> cylinder_color(motor_no_plane, 0, 255, 0); // green
-        // pcl::visualization::PointCloudColorHandlerCustom<PointTRGB> motor_color(removed, 255, 0, 0); // green
-        // view->addPointCloud<PointTRGB>(motor_no_plane, cylinder_color, "cylinder",0);
-        // view->addPointCloud<PointTRGB>(removed, motor_color, "motor", 0);
-    
+        // pcl::visualization::PointCloudColorHandlerCustom<PointTRGB> motor_color(motor_cloud, 255, 0, 0);
+        // pcl::visualization::PointCloudColorHandlerCustom<PointTRGB> removed_color(removed, 0, 255, 0);
+        // view->addPointCloud<PointTRGB>(motor_cloud, motor_color, "motor_cloud",0);
+        // view->addPointCloud<PointTRGB>(removed, removed_color, "removed", 0);
+
         // view->addCylinder(*coeff_cylinder, "inliers");
         // int numsides = 15;
         // // view->addCylinderNew(*coeff_cylinder, numsides, "inliers");
-        // view->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 2, "cylinder");
+        // view->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 2, "motor_cloud");
         // view->spin();
+        // // === Use PCL_VISUALIZER to check Segmentation Result ===//
     }
+}
+
+void estimate_scene_plane_coeff(pcl::PointCloud<PointTRGB>::Ptr scene, pcl::ModelCoefficients::Ptr coeff_plane)
+{
+    pcl::PointCloud<PointTRGB>::Ptr plane(new pcl::PointCloud<PointTRGB>);
+    pcl::PointCloud<PointTRGB>::Ptr remains(new pcl::PointCloud<PointTRGB>);
+    pcl::PointIndices::Ptr inlier_plane(new pcl::PointIndices);
+
+    pcl::SACSegmentation<PointTRGB> seg_plane;
+    seg_plane.setOptimizeCoefficients(true);
+    seg_plane.setModelType(pcl::SACMODEL_PLANE);
+    seg_plane.setMethodType(pcl::SAC_RANSAC);
+    seg_plane.setDistanceThreshold(0.003);
+    seg_plane.setInputCloud(scene);
+    seg_plane.segment(*inlier_plane, *coeff_plane);
+
+    // // === Use PCL_VISUALIZER to check Segmentation Result ===//
+    // pcl::ExtractIndices<PointTRGB> extract;
+    // extract.setInputCloud(scene);
+    // extract.setIndices(inlier_plane);
+    // extract.setNegative(false);
+    // extract.filter(*plane);
+    // extract.setNegative(true);
+    // extract.filter(*remains);
+
+    // pcl::visualization::PCLVisualizer::Ptr view(new pcl::visualization::PCLVisualizer("scene plane viewer"));
+    // view->removeAllPointClouds();
+    // view->setBackgroundColor(0, 0, 0);
+    // view->addCoordinateSystem(0.02f);
+
+    // pcl::visualization::PointCloudColorHandlerCustom<PointTRGB> plane_color(plane, 0, 255, 0); // green
+    // pcl::visualization::PointCloudColorHandlerCustom<PointTRGB> remains_color(remains, 255, 0, 0); // green
+    // view->addPointCloud<PointTRGB>(plane, plane_color, "plane",0);
+    // view->addPointCloud<PointTRGB>(remains, remains_color, "remains", 0);
+    // view->addPlane(*coeff_plane, "inliers");
+    // view->spin();
+    // // === Use PCL_VISUALIZER to check Segmentation Result ===//
 }
 
 void motor_cb(const obj_detect::bboxes::ConstPtr& boxes_msg)
 {
     //==================================================//
-    // Subscribe "/obj_detect/bboxes" topic
+    // Subscribe "/yolov4_motors_bboxes" topic
     //==================================================//
-    //cout << "\nyolo_callback\n";
-    //cout << "Bouding Boxes (header):" << boxes_msg->header << endl;
-    //cout << "Bouding Boxes (image_header):" << boxes_msg->image_header << endl;
+    int total_motor_num = boxes_msg->bboxes.size();
 
-    int obj_num = boxes_msg->bboxes.size();
-
-    motor_all.resize(obj_num);
-
-    for(int k = 0; k < obj_num; ++k)
+    if(!boxes_msg->bboxes.empty())
     {
-        std::string obj_class = boxes_msg->bboxes[k].object_name;
-        float score = boxes_msg->bboxes[k].score;
-        int xmin = boxes_msg->bboxes[k].xmin;
-        int xmax = boxes_msg->bboxes[k].xmax;
-        int ymin = boxes_msg->bboxes[k].ymin;
-        int ymax = boxes_msg->bboxes[k].ymax;
-        int center_x = int((xmin +xmax)/2.0);
-        int center_y = int((ymin +ymax)/2.0);
+        motor_all.resize(total_motor_num);
 
-        motor_all[k].obj_class = obj_class;
-        motor_all[k].score = score;
-        motor_all[k].box_pixel.xmin = xmin;
-        motor_all[k].box_pixel.xmax = xmax;
-        motor_all[k].box_pixel.ymin = ymin;
-        motor_all[k].box_pixel.ymax = ymax;
-        motor_all[k].center_pixel.x = center_x;
-        motor_all[k].center_pixel.y = center_y;
+        for(int k = 0; k < total_motor_num; ++k)
+        {
+            motor_all[k].box_pixel.xmin = boxes_msg->bboxes[k].xmin;
+            motor_all[k].box_pixel.xmax = boxes_msg->bboxes[k].xmax;
+            motor_all[k].box_pixel.ymin = boxes_msg->bboxes[k].ymin;
+            motor_all[k].box_pixel.ymax = boxes_msg->bboxes[k].ymax;
+        }
     }
 
-    if(boxes_msg->bboxes.empty())
-        obj_num = 0;
-
-    cout << "Total Motor clusters = " << obj_num << endl;   //ERROR: display 1 even if no obj detected
+    cout << "Total Motor clusters = " << total_motor_num << endl;
 }
 
 void motor_cloud_cb(const sensor_msgs::PointCloud2ConstPtr& organized_cloud_msg)
 {
     int height = organized_cloud_msg->height;
     int width = organized_cloud_msg->width;
-    int points = height * width;
+    int total_points = height * width;
 
-    cout<<"(height, width) = "<<height<<", "<<width<<endl;
-    if((points==0))// && (save_organized_cloud ==true))
+    cout << "ori scene cloud (height, width) = " << height << ", " << width << endl;
+    if(total_points == 0)
     {
-        cout<<"PointCloud No points!!!!!!\n";
-        //break? pass?
+        cout << "ori scene cloud No POINTS!!!!!!\n";
     }
     else
     {
         // 將點雲格式由sensor_msgs/PointCloud2轉成pcl/PointCloud(PointXYZ, PointXYZRGB)
         organized_cloud_ori->clear();
         pcl::fromROSMsg(*organized_cloud_msg, *organized_cloud_ori);
+
         //========================================//
-        // Go over all EVERY Yolov4 detected sauces
-        // save 2D, 3D sauce information
+        // Estimate Scene Cloud Plane Coeff
+        //========================================//
+        pcl::ModelCoefficients::Ptr coeff_plane(new pcl::ModelCoefficients);
+        estimate_scene_plane_coeff(organized_cloud_ori, coeff_plane);
+
+        //========================================//
+        // Go over all EVERY Yolov4 detected motors
+        // save 3D motor information
         //========================================//
         for(int n = 0; n < motor_all.size(); ++n)
         {
-            cout << "Sauce #" << n << endl;
+            cout << "Motor #" << n << endl;
 
             //=========================================//
-            // Extract Sauce's Depth Cloud(Orgainized)
+            // Extract Motors' Cloud from Scene Orgainized Cloud
             // 2D pixel mapping to 3D points
             //=========================================//
-            motor_all[n].depth_cloud = boost::make_shared<pcl::PointCloud<PointTRGB>>();
+            motor_all[n].motor_bbox_cloud = boost::make_shared<pcl::PointCloud<PointTRGB>>();
+
             int xmin = motor_all[n].box_pixel.xmin;
             int xmax = motor_all[n].box_pixel.xmax;
             int ymin = motor_all[n].box_pixel.ymin;
             int ymax = motor_all[n].box_pixel.ymax;
 
-            // //Ensure the 2D pixels are inside image's max width, height
-            // if(xmin < 0) xmin = 114;//186;//0;
-            // if(ymin < 0) ymin = 40;//74;//0;
-            // if(xmax > img_width-1) xmax = 723;//1085;//img_width-1;
-            // if(ymax > img_height-1) ymax = 424;//648;//img_height-1;
-            // cout<<"\timgwidth, imgHeight = "<< img_width <<",  "<< img_height<<endl;
-            cout<< "\tPixel (xmin, xmax, ymin, ymax) = "<< xmin << ", " << xmax <<", " << ymin << ", " << ymax << endl;
+            cout<< "\tBBox Pixel (xmin, xmax, ymin, ymax) = " << xmin << ", " << xmax <<", " << ymin << ", " << ymax << endl;
 
             //Map 2D pixel to 3D points
             int x_shift = 370;  //!!!!Change according to select_workspace
@@ -257,32 +261,65 @@ void motor_cloud_cb(const sensor_msgs::PointCloud2ConstPtr& organized_cloud_msg)
             {
                 for(int j = ymin; j<= ymax; j++)
                 {
-                    PointTRGB depth_pt = organized_cloud_ori->at(x_shift + i, y_shift + j);
-                    if(pcl_isfinite(depth_pt.x) && pcl_isfinite(depth_pt.y) && pcl_isfinite(depth_pt.z))
+                    PointTRGB rgb_pt = organized_cloud_ori->at(x_shift + i, y_shift + j);
+                    if(pcl_isfinite(rgb_pt.x) && pcl_isfinite(rgb_pt.y) && pcl_isfinite(rgb_pt.z))
                     {
-                        motor_all[n].depth_cloud->push_back(depth_pt);
+                        motor_all[n].motor_bbox_cloud->push_back(rgb_pt);
                     }
                 }
             }
-            cout << "\tExtract [depth_cloud] = " << motor_all[n].depth_cloud->size() << endl;
-            pcl::io::savePCDFileBinary<PointTRGB>(file_path_cloud_organized, *motor_all[n].depth_cloud); //savePCDFileASCII
+            cout << "\tExtract [motor_bbox_cloud] = " << motor_all[n].motor_bbox_cloud->size() << endl << endl;
+            // pcl::io::savePCDFileBinary<PointTRGB>(file_path_cloud_organized, *motor_all[n].motor_bbox_cloud);
+
+            //===========================================//
+            // Remove Scene Plane & Estimate Motor Pose
+            //===========================================//
+            motor_all[n].motor_cloud = boost::make_shared<pcl::PointCloud<PointTRGB>>();
+            pcl::ModelCoefficients::Ptr coeff_cylinder (new pcl::ModelCoefficients);
+            estimate_motor_pose(motor_all[n].motor_bbox_cloud, coeff_plane, motor_all[n].motor_cloud, coeff_cylinder);
+
+            Eigen::Vector3d vv1 = Eigen::Vector3d(1.0, 0.0, 0.0);
+            Eigen::Vector3d vv2 = Eigen::Vector3d(coeff_cylinder->values[3], coeff_cylinder->values[4], coeff_cylinder->values[5]);
+            vv2.normalize();
+            Eigen::Quaterniond out = Eigen::Quaterniond::FromTwoVectors(vv1, vv2);
+
+            //=========rviz marker=========
+            Eigen::Quaterniond AQ;
+            visualization_msgs::Marker popcorn_arrow;
+            popcorn_arrow.header.frame_id = "camera_color_optical_frame";
+            popcorn_arrow.header.stamp = ros::Time();
+            popcorn_arrow.ns = "my_namespace";
+            popcorn_arrow.id = 0;
+            popcorn_arrow.type = visualization_msgs::Marker::ARROW;
+            popcorn_arrow.action = visualization_msgs::Marker::ADD;
+            popcorn_arrow.pose.position.x = coeff_cylinder->values[0];
+            popcorn_arrow.pose.position.y = coeff_cylinder->values[1];
+            popcorn_arrow.pose.position.z = coeff_cylinder->values[2];
+            popcorn_arrow.pose.orientation.x = out.x();//pose_msg.orientation.x;
+            popcorn_arrow.pose.orientation.y = out.y();//pose_msg.orientation.y;
+            popcorn_arrow.pose.orientation.z = out.z();//pose_msg.orientation.z;
+            popcorn_arrow.pose.orientation.w = out.w();//pose_msg.orientation.w;
+            popcorn_arrow.scale.x = 0.150;//sqrt(pow(coeff_cylinder->values[3],2)+pow(coeff_cylinder->values[4],2)+pow(coeff_cylinder->values[5],2)); //length
+            popcorn_arrow.scale.y = 0.008;  //width
+            popcorn_arrow.scale.z = 0.008;  //height
+            popcorn_arrow.color.a = 1.0;    // Don't forget to set the alpha!
+            popcorn_arrow.color.r = 0.0;
+            popcorn_arrow.color.g = 0.0;
+            popcorn_arrow.color.b = 1.0;
+
+            cout<< "popcorn_pose_topic rviz marker" <<endl;
+
+            motor_pose_pub.publish(popcorn_arrow);
+            //=========rviz marker=========
+            pcl::toROSMsg(*motor_all[n].motor_cloud, motor_cloud_msg);
+            motor_cloud_msg.header.frame_id = "camera_depth_optical_frame";
+            motor_cloud_pub.publish(motor_cloud_msg);
+
+
         }
-
-        //========================================//
-        // Visualize highest sauce on rgb_cloud
-        //========================================//
-
-        //Display Top 3 Sauces via Rviz
-        pcl::PointCloud<PointTRGB>::Ptr top3_clouds_stock(new pcl::PointCloud<PointTRGB>);
-
-        for(int idx = 0; idx < motor_all.size(); ++idx)
-        {
-            *top3_clouds_stock = *top3_clouds_stock + *(motor_all[idx].depth_cloud);
-        }
-
 
         pcl::PointCloud<PointTRGB>::Ptr motor_clear(new pcl::PointCloud<PointTRGB>);
-        estimate_motor_pose(top3_clouds_stock, motor_clear);
+        PointTRGB motor_center;
 
         // Eigen::Vector3d vv1 = Eigen::Vector3d(vect_x[0], vect_x[1], vect_x[2]);
         // Eigen::Vector3d vv2 = Eigen::Vector3d(line_c1_c2_x, line_c1_c2_y, line_c1_c2_z);
@@ -314,13 +351,25 @@ void motor_cloud_cb(const sensor_msgs::PointCloud2ConstPtr& organized_cloud_msg)
 
         // cout<< "popcorn_pose_topic rviz marker" <<endl;
 
-        // popcorn_pose_pub.publish(popcorn_arrow);
+        // motor_pose_pub.publish(popcorn_arrow);
         // //=========rviz marker=========
 
-        //Publish pcl::PointCloud to ROS sensor::PointCloud2, and to topic
-        pcl::toROSMsg(*motor_clear, top3_clouds_stock_msg);
-        top3_clouds_stock_msg.header.frame_id = "camera_depth_optical_frame";
-        motor_cloud_pub.publish(top3_clouds_stock_msg);
+
+        // //========================================//
+        // // Visualize All Detected Motors
+        // //========================================//
+        // //Display Top 3 Sauces via Rviz
+        // pcl::PointCloud<PointTRGB>::Ptr top3_clouds_stock(new pcl::PointCloud<PointTRGB>);
+
+        // for(int idx = 0; idx < motor_all.size(); ++idx)
+        // {
+        //     *top3_clouds_stock = *top3_clouds_stock + *(motor_all[idx].motor_bbox_cloud);
+        // }
+
+        // //Publish pcl::PointCloud to ROS sensor::PointCloud2, and to topic
+        // pcl::toROSMsg(*motor_clear, motor_cloud_msg);
+        // motor_cloud_msg.header.frame_id = "camera_depth_optical_frame";
+        // motor_cloud_pub.publish(motor_cloud_msg);
     }
 }
 int main(int argc, char** argv)
@@ -330,9 +379,11 @@ int main(int argc, char** argv)
 
     ros::NodeHandle nh;
     ros::Subscriber sub_yolo = nh.subscribe("/yolov4_motors_bboxes", 1, motor_cb);
-    ros::Subscriber sub_motor_cloud = nh.subscribe("/camera/depth_registered/points", 1, motor_cloud_cb);
+    ros::Subscriber sub_scene_cloud = nh.subscribe("/camera/depth_registered/points", 1, motor_cloud_cb);
 
-    motor_cloud_pub = nh.advertise<sensor_msgs::PointCloud2> ("/motor_cloud_pub", 1);
+    motor_cloud_pub = nh.advertise<sensor_msgs::PointCloud2> ("/motor_cloud", 1);
+    motor_pose_pub = nh.advertise<visualization_msgs::Marker>("/motor_pose", 1);
+
     ros::spin();
 
     return 0;

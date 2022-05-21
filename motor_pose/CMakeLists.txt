@@ -24,6 +24,7 @@ find_package(catkin REQUIRED COMPONENTS
     pcl_ros
     roscpp
     sensor_msgs
+    visualization_msgs
     std_msgs
     obj_detect
 )
@@ -129,7 +130,7 @@ message(STATUS "    version: ${PCL_VERSION}")
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES motor_pose
-   CATKIN_DEPENDS pcl_conversions pcl_ros roscpp sensor_msgs std_msgs image_transport message_runtime
+   CATKIN_DEPENDS pcl_conversions pcl_ros roscpp sensor_msgs visualization_msgs std_msgs image_transport message_runtime
 #  DEPENDS system_lib
 )
 
