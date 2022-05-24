@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   pcl_ros
   roscpp
   sensor_msgs
+  visualization_msgs
   std_msgs
   part_afford_seg
 )
@@ -111,7 +112,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES get_screw_cloud
-  CATKIN_DEPENDS image_transport message_runtime pcl_conversions pcl_ros roscpp sensor_msgs std_msgs 
+  CATKIN_DEPENDS image_transport message_runtime pcl_conversions pcl_ros roscpp sensor_msgs visualization_msgs std_msgs 
 #  DEPENDS system_lib
 )
 
