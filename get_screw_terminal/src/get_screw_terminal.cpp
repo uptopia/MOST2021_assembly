@@ -1,6 +1,7 @@
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <visualization_msgs/Marker.h>
+#include <std_msgs/Float32MultiArray.h>
 #include <pcl_conversions/pcl_conversions.h>
 
 #include <iostream>
@@ -24,7 +25,7 @@ pcl::PointCloud<PointTRGB>::Ptr terminal_pos(new pcl::PointCloud<PointTRGB>);
 pcl::PointCloud<PointTRGB>::Ptr terminal_neg(new pcl::PointCloud<PointTRGB>);
 pcl::PointCloud<PointTRGB>::Ptr organized_cloud_ori(new pcl::PointCloud<PointTRGB>);
 
-ros::Publisher screw_pub, screw_pose_pub, terminal_pub, terminal_pose_pub;
+ros::Publisher screw_pub, screw_pose_pub, terminal_pub, terminal_pose_pub, screw_grasp_pose_pub, terminal_grasp_pose_pub;
 sensor_msgs::PointCloud2 screw_msg, terminal_msg;
 
 void screw_cb(const part_afford_seg::seg_out::ConstPtr& seg_msg)
@@ -104,8 +105,11 @@ void screw_cb(const part_afford_seg::seg_out::ConstPtr& seg_msg)
         Eigen::Vector3d vv2 = Eigen::Vector3d(arrow_body.x, arrow_body.y, arrow_body.z);
         vv2.normalize();
         Eigen::Quaterniond out = Eigen::Quaterniond::FromTwoVectors(vv1, vv2);
+        Eigen::Vector3d euler = out.toRotationMatrix().eulerAngles(2, 1, 0);
+        float yaw = euler[0];
+        float pitch = euler[1];
+        float roll = euler[2];
 
-        Eigen::Quaterniond AQ;
         visualization_msgs::Marker screw_arrow;
         screw_arrow.header.frame_id = "camera_color_optical_frame";
         screw_arrow.header.stamp = ros::Time();
@@ -132,6 +136,18 @@ void screw_cb(const part_afford_seg::seg_out::ConstPtr& seg_msg)
 
         screw_pose_pub.publish(screw_arrow);
         //=========rviz marker=========
+
+        //pos, euler, phi
+        //(x, y, z), (), phi
+        std_msgs::Float32MultiArray grasp_msg; 
+        grasp_msg.data.push_back(arrow_head.x); // x
+        grasp_msg.data.push_back(arrow_head.y); // y
+        grasp_msg.data.push_back(arrow_head.z); // z
+        grasp_msg.data.push_back(yaw); //?
+        grasp_msg.data.push_back(pitch); //?  
+        grasp_msg.data.push_back(roll); //?  
+        grasp_msg.data.push_back(0.0); // phi
+        screw_grasp_pose_pub.publish(grasp_msg);
     }
     cout << "screw points " << screw->points.size() <<endl;
     pcl::toROSMsg(*screw, screw_msg);
@@ -161,8 +177,11 @@ int main(int argc, char** argv)
     
     screw_pub = nh.advertise<sensor_msgs::PointCloud2>("screw_cloud", 1);
     screw_pose_pub = nh.advertise<visualization_msgs::Marker>("screw_pose", 1);
+    screw_grasp_pose_pub = nh.advertise<std_msgs::Float32MultiArray>("screw_grasp_pose", 1);
+
     terminal_pub = nh.advertise<sensor_msgs::PointCloud2>("terminal_cloud", 1);
     terminal_pose_pub = nh.advertise<visualization_msgs::Marker>("terminal_pose", 1);
+    terminal_grasp_pose_pub = nh.advertise<std_msgs::Float32MultiArray>("terminal_grasp_pose", 1);
     ros::spin();
     
     return 0;

@@ -1,6 +1,7 @@
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <visualization_msgs/Marker.h>
+#include <std_msgs/Float32MultiArray.h>
 #include <pcl_conversions/pcl_conversions.h> //"pcl::fromROSMsg"
 
 #include <iostream>
@@ -56,7 +57,7 @@ std::vector<Motor> motor_all{};
 std::string file_path_cloud_organized = "organized_cloud_tmp.pcd";
 pcl::PointCloud<PointTRGB>::Ptr organized_cloud_ori(new pcl::PointCloud<PointTRGB>);
 
-ros::Publisher motor_cloud_pub, motor_pose_pub;
+ros::Publisher motor_cloud_pub, motor_pose_pub, motor_grasp_pose_pub;
 sensor_msgs::PointCloud2 motor_cloud_msg;
 
 void estimate_motor_pose(pcl::PointCloud<PointTRGB>::Ptr motor_bbox_cloud, pcl::ModelCoefficients::Ptr coeff_scene_plane, pcl::PointCloud<PointTRGB>::Ptr motor_cloud, pcl::ModelCoefficients::Ptr coeff_cylinder)
@@ -282,9 +283,12 @@ void motor_cloud_cb(const sensor_msgs::PointCloud2ConstPtr& organized_cloud_msg)
             Eigen::Vector3d vv2 = Eigen::Vector3d(coeff_cylinder->values[3], coeff_cylinder->values[4], coeff_cylinder->values[5]);
             vv2.normalize();
             Eigen::Quaterniond out = Eigen::Quaterniond::FromTwoVectors(vv1, vv2);
+            Eigen::Vector3d euler = out.toRotationMatrix().eulerAngles(2, 1, 0);
+            float yaw = euler[0];
+            float pitch = euler[1];
+            float roll = euler[2];
 
             //=========rviz marker=========
-            Eigen::Quaterniond AQ;
             visualization_msgs::Marker popcorn_arrow;
             popcorn_arrow.header.frame_id = "camera_color_optical_frame";
             popcorn_arrow.header.stamp = ros::Time();
@@ -311,11 +315,22 @@ void motor_cloud_cb(const sensor_msgs::PointCloud2ConstPtr& organized_cloud_msg)
 
             motor_pose_pub.publish(popcorn_arrow);
             //=========rviz marker=========
+
+            //pos, euler, phi
+            //(x, y, z), (), phi
+            std_msgs::Float32MultiArray grasp_msg; 
+            grasp_msg.data.push_back(coeff_cylinder->values[0]); // x
+            grasp_msg.data.push_back(coeff_cylinder->values[1]); // y
+            grasp_msg.data.push_back(coeff_cylinder->values[2]); // z
+            grasp_msg.data.push_back(yaw); //?
+            grasp_msg.data.push_back(pitch); //?  
+            grasp_msg.data.push_back(roll); //?  
+            grasp_msg.data.push_back(0.0); // phi
+            motor_grasp_pose_pub.publish(grasp_msg);
+
             pcl::toROSMsg(*motor_all[n].motor_cloud, motor_cloud_msg);
             motor_cloud_msg.header.frame_id = "camera_depth_optical_frame";
             motor_cloud_pub.publish(motor_cloud_msg);
-
-
         }
 
         pcl::PointCloud<PointTRGB>::Ptr motor_clear(new pcl::PointCloud<PointTRGB>);
@@ -383,6 +398,7 @@ int main(int argc, char** argv)
 
     motor_cloud_pub = nh.advertise<sensor_msgs::PointCloud2> ("/motor_cloud", 1);
     motor_pose_pub = nh.advertise<visualization_msgs::Marker>("/motor_pose", 1);
+    motor_grasp_pose_pub = nh.advertise<std_msgs::Float32MultiArray>("/motor_grasp_pose", 1);
 
     ros::spin();
 
