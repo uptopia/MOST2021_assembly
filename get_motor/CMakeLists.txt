@@ -1,5 +1,14 @@
+# include_directories(${PCL_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR})
+# link_directories(${PCL_LIBRARY_DIRS})
+# add_definitions(${PCL_DEFINITIONS})
+
+# add_executable (${PROJECT_NAME} ${PROJECT_SOURCE_DIR}/get_motor.cpp)
+
+# target_link_libraries (${PROJECT_NAME} ${PCL_LIBRARIES} pcl_visualization)
+
+
 cmake_minimum_required(VERSION 3.0.2)
-project(get_screw_cloud)
+project(get_motor)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -8,20 +17,29 @@ project(get_screw_cloud)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  cv_bridge
-  image_transport
-  message_generation
-  pcl_conversions
-  pcl_ros
-  roscpp
-  sensor_msgs
-  visualization_msgs
-  std_msgs
-  part_afford_seg
+    cv_bridge
+    image_transport
+    message_generation
+    pcl_conversions
+    pcl_ros
+    roscpp
+    sensor_msgs
+    visualization_msgs
+    std_msgs
+    obj_detect
 )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
+find_package(OpenCV REQUIRED)
+message(STATUS "OpenCV library status:")
+message(STATUS "    version: ${OpenCV_VERSION}")
+message(STATUS "    libraries: ${OpenCV_LIBS}")
+message(STATUS "    include path: ${OpenCV_INCLUDE_DIRS}")
+
+find_package(PCL 1.2 REQUIRED)
+message(STATUS "PCL library status:")
+message(STATUS "    version: ${PCL_VERSION}")
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -56,8 +74,8 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate messages in the 'msg' folder
 # add_message_files(
 #   FILES
-#   Message1.msg
-#   Message2.msg
+#   bbox.msg
+#   bboxes.msg
 # )
 
 ## Generate services in the 'srv' folder
@@ -77,7 +95,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate added messages and services with any dependencies listed here
 # generate_messages(
 #   DEPENDENCIES
-#   sensor_msgs#   std_msgs
+#   std_msgs
 # )
 
 ################################################
@@ -111,8 +129,8 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES get_screw_cloud
-  CATKIN_DEPENDS image_transport message_runtime pcl_conversions pcl_ros roscpp sensor_msgs visualization_msgs std_msgs 
+#  LIBRARIES get_motor
+   CATKIN_DEPENDS pcl_conversions pcl_ros roscpp sensor_msgs visualization_msgs std_msgs image_transport message_runtime
 #  DEPENDS system_lib
 )
 
@@ -131,7 +149,7 @@ include_directories(
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/get_screw_cloud.cpp
+#   src/${PROJECT_NAME}/get_motor.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -140,9 +158,9 @@ include_directories(
 # add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-## With catkin_make all packages are built within a single CMake context
+## With catkin_make srcall packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(${PROJECT_NAME} ${PROJECT_SOURCE_DIR}/src/get_screw_cloud.cpp)
+add_executable(${PROJECT_NAME} ${PROJECT_SOURCE_DIR}/src/get_motor.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -209,7 +227,7 @@ target_link_libraries(
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_get_screw_cloud.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_get_motor.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()

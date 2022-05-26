@@ -24,8 +24,8 @@ pcl::PointCloud<PointTRGB>::Ptr terminal_pos(new pcl::PointCloud<PointTRGB>);
 pcl::PointCloud<PointTRGB>::Ptr terminal_neg(new pcl::PointCloud<PointTRGB>);
 pcl::PointCloud<PointTRGB>::Ptr organized_cloud_ori(new pcl::PointCloud<PointTRGB>);
 
-ros::Publisher screw_pub, screw_pose_pub;
-sensor_msgs::PointCloud2 screw_msg;
+ros::Publisher screw_pub, screw_pose_pub, terminal_pub, terminal_pose_pub;
+sensor_msgs::PointCloud2 screw_msg, terminal_msg;
 
 void screw_cb(const part_afford_seg::seg_out::ConstPtr& seg_msg)
 {   
@@ -137,23 +137,9 @@ void screw_cb(const part_afford_seg::seg_out::ConstPtr& seg_msg)
     pcl::toROSMsg(*screw, screw_msg);
     screw_msg.header.frame_id = "camera_color_optical_frame";
     screw_pub.publish(screw_msg);
-
-    // cout << seg_msg->centers.size() << endl;
-    // for(int i = 0; i < seg_msg->centers.size(); i++)
-    // {
-    //     cout << "object # " << i << endl;
-    //     cout << seg_msg->centers[i].c1_x << " "
-    //         << seg_msg->centers[i].c1_y << " "
-    //         << seg_msg->centers[i].c2_x << " "
-    //         << seg_msg->centers[i].c2_y << " "
-    //         << seg_msg->centers[i].angle << " "
-    //         << seg_msg->bbox_xmin << " "
-    //         << seg_msg->bbox_ymin << " "<< endl;
-    //     // cout << seg_msg->roi[i] << endl;
-    // }
 }
 
-void screw_cloud_cb(const sensor_msgs::PointCloud2ConstPtr& organized_cloud_msg)
+void orgainized_cloud_cb(const sensor_msgs::PointCloud2ConstPtr& organized_cloud_msg)
 {
     int height = organized_cloud_msg->height;
     int width = organized_cloud_msg->width;
@@ -166,15 +152,17 @@ void screw_cloud_cb(const sensor_msgs::PointCloud2ConstPtr& organized_cloud_msg)
 
 int main(int argc, char** argv)
 {   
-    ros::init(argc, argv, "screw_cloud");
+    ros::init(argc, argv, "get_screw_terminal");
     cout << "screw cloud node" << endl;
 
     ros::NodeHandle nh;
     ros::Subscriber sub_seg = nh.subscribe("/seg_out", 1, screw_cb);
-    ros::Subscriber sub_screw_cloud = nh.subscribe("/camera/depth_registered/points", 1, screw_cloud_cb);
+    ros::Subscriber sub_organized_cloud = nh.subscribe("/camera/depth_registered/points", 1, orgainized_cloud_cb);
     
-    screw_pub = nh.advertise<sensor_msgs::PointCloud2>("screw", 1);
+    screw_pub = nh.advertise<sensor_msgs::PointCloud2>("screw_cloud", 1);
     screw_pose_pub = nh.advertise<visualization_msgs::Marker>("screw_pose", 1);
+    terminal_pub = nh.advertise<sensor_msgs::PointCloud2>("terminal_cloud", 1);
+    terminal_pose_pub = nh.advertise<visualization_msgs::Marker>("terminal_pose", 1);
     ros::spin();
     
     return 0;

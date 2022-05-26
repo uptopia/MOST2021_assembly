@@ -374,8 +374,8 @@ void motor_cloud_cb(const sensor_msgs::PointCloud2ConstPtr& organized_cloud_msg)
 }
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "motor_pose");
-    cout << "motor_pose code\n";
+    ros::init(argc, argv, "get_motor");
+    cout << "get_motor code\n";
 
     ros::NodeHandle nh;
     ros::Subscriber sub_yolo = nh.subscribe("/yolov4_motors_bboxes", 1, motor_cb);
