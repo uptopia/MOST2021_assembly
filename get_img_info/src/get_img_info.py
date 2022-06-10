@@ -6,13 +6,15 @@ from cv_bridge import CvBridge, CvBridgeError
 
 import rospy
 from sensor_msgs.msg import Image as msg_Image
-g
+from sensor_msgs.msg import PointCloud2 as msg_Cloud
+from assembly_srv.srv import ImgInfo, ImgInfoResponse
+
 show_res = True
 n = 1
 # dir = "./sampling_data/"
-class Select_workspace_Node:
+class get_img_info_server:
     def __init__(self) -> None:
-        rospy.init_node("Select_workspace_Node")
+        rospy.init_node("get_img_info_server")
         self.bridge = CvBridge()
         rospy.Subscriber("/camera/color/image_raw", msg_Image, self.imageCallback)
         self.pub = rospy.Publisher('/camera/color/image_raw_workspace', msg_Image, queue_size=10)
@@ -36,7 +38,27 @@ class Select_workspace_Node:
 
         select_ws = self.bridge.cv2_to_imgmsg(select_ws, "bgr8")
         self.pub.publish(select_ws)
-    
-if __name__ == "__main__":
-    Select_workspace_Node()
+
+def cloudCallback(cloud_msg):
+
+def imageCallback(img_msg):
+
+def handle_img_info(req):
+    bridge = CvBridge()
+    rospy.Subscriber("/camera/color/image_raw", msg_Image, imgCallback)
+    rospy.Subscriber("/camera/depth_registered/points", msg_Cloud, cloudCallback)
+
+
+    res = ImgInfoResponse
+    return res
+
+def get_img_info_server():
+    rospy.init_node('get_img_info_server')
+    s = rospy.Service('get_img_info', ImgInfo, handle_img_info)
+    print("get_img_info_server")
     rospy.spin()
+
+
+if __name__ == "__main__":
+    get_img_info_server()
+

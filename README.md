@@ -60,3 +60,8 @@ cd ~/MOST2021_assembly
 . devel/setup.bash
 rosrun get_screw_cloud get_screw_cloud
 ```
+
+
+
+TODO:
+[ ] x_shift, y_shift publish topic

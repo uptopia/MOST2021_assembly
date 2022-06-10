@@ -1,0 +1,9 @@
+bool picture_pose_reached
+sensor_msgs/PointCloud2 organized_cloud
+sensor_msgs/Image rgb_img
+
+---
+
+obj_detect/bbox[] bboxes
+sensor_msgs/PointCloud2 organized_cloud
+sensor_msgs/Image rgb_img

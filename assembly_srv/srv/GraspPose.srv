@@ -1,0 +1,6 @@
+bool picture_pose_reached
+sensor_msgs/PointCloud2 organized_cloud
+
+---
+
+float32[] grasp_pose
