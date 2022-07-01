@@ -27,6 +27,7 @@ find_package(catkin REQUIRED COMPONENTS
     visualization_msgs
     std_msgs
     obj_detect
+    # assembly_srv
 )
 
 ## System dependencies are found with CMake's conventions
@@ -78,11 +79,11 @@ message(STATUS "    version: ${PCL_VERSION}")
 #   bboxes.msg
 # )
 
-## Generate services in the 'srv' folder
+# ## Generate services in the 'srv' folder
 # add_service_files(
 #   FILES
-#   Service1.srv
-#   Service2.srv
+#   # Service1.srv
+#   GraspPose.srv
 # )
 
 ## Generate actions in the 'action' folder
@@ -130,7 +131,9 @@ message(STATUS "    version: ${PCL_VERSION}")
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES get_motor
-   CATKIN_DEPENDS pcl_conversions pcl_ros roscpp sensor_msgs visualization_msgs std_msgs image_transport message_runtime
+  # LIBRARIES assembly_srv
+  LIBRARIES ${PROJECT_NAME}
+  CATKIN_DEPENDS pcl_conversions pcl_ros roscpp sensor_msgs visualization_msgs std_msgs image_transport message_runtime
 #  DEPENDS system_lib
 )
 

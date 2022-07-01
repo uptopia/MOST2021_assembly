@@ -24,6 +24,8 @@
 #include <obj_detect/bbox.h>
 #include <obj_detect/bboxes.h>
 
+#include "assembly_srv/GraspPose.h"
+
 using namespace std;
 
 typedef pcl::PointXYZRGB PointTRGB;
@@ -57,9 +59,9 @@ std::vector<Motor> motor_all{};
 std::string file_path_cloud_organized = "organized_cloud_tmp.pcd";
 pcl::PointCloud<PointTRGB>::Ptr organized_cloud_ori(new pcl::PointCloud<PointTRGB>);
 
-ros::Publisher motor_cloud_pub, motor_pose_pub, motor_grasp_pose_pub;
+ros::Publisher motor_cloud_pub, motor_pose_pub;//, motor_grasp_pose_pub;
 sensor_msgs::PointCloud2 motor_cloud_msg;
-
+std_msgs::Float32MultiArray grasp_msg; 
 void estimate_motor_pose(pcl::PointCloud<PointTRGB>::Ptr motor_bbox_cloud, pcl::ModelCoefficients::Ptr coeff_scene_plane, pcl::PointCloud<PointTRGB>::Ptr motor_cloud, pcl::ModelCoefficients::Ptr coeff_cylinder)
 {
     if(motor_bbox_cloud->size()>0)
@@ -290,7 +292,7 @@ void motor_cloud_cb(const sensor_msgs::PointCloud2ConstPtr& organized_cloud_msg)
 
             //=========rviz marker=========
             visualization_msgs::Marker popcorn_arrow;
-            popcorn_arrow.header.frame_id = "camera_color_optical_frame";
+            popcorn_arrow.header.frame_id = "camera_depth_optical_frame";
             popcorn_arrow.header.stamp = ros::Time();
             popcorn_arrow.ns = "my_namespace";
             popcorn_arrow.id = 0;
@@ -318,7 +320,7 @@ void motor_cloud_cb(const sensor_msgs::PointCloud2ConstPtr& organized_cloud_msg)
 
             //pos, euler, phi
             //(x, y, z), (), phi
-            std_msgs::Float32MultiArray grasp_msg; 
+            // std_msgs::Float32MultiArray grasp_msg; 
             grasp_msg.data.push_back(coeff_cylinder->values[0]); // x
             grasp_msg.data.push_back(coeff_cylinder->values[1]); // y
             grasp_msg.data.push_back(coeff_cylinder->values[2]); // z
@@ -326,7 +328,7 @@ void motor_cloud_cb(const sensor_msgs::PointCloud2ConstPtr& organized_cloud_msg)
             grasp_msg.data.push_back(pitch); //?  
             grasp_msg.data.push_back(roll); //?  
             grasp_msg.data.push_back(0.0); // phi
-            motor_grasp_pose_pub.publish(grasp_msg);
+            // motor_grasp_pose_pub.publish(grasp_msg);
 
             pcl::toROSMsg(*motor_all[n].motor_cloud, motor_cloud_msg);
             motor_cloud_msg.header.frame_id = "camera_depth_optical_frame";
@@ -387,6 +389,29 @@ void motor_cloud_cb(const sensor_msgs::PointCloud2ConstPtr& organized_cloud_msg)
         // motor_cloud_pub.publish(motor_cloud_msg);
     }
 }
+
+bool get_pose(assembly_srv::GraspPose::Request& req, assembly_srv::GraspPose::Response& res)
+{
+    // res.grasp_pose = grasp_msg.data;
+    // cout << "res.grasp_pose" << res.grasp_pose.data << endl;
+    if(req.picture_pose_reached == true)
+    {
+        res.grasp_pose = grasp_msg.data;
+        cout <<"grasp_msg.data " << grasp_msg.data[0] << "\n"
+        << grasp_msg.data[1] << "\n"
+        << grasp_msg.data[2] << "\n"
+        << grasp_msg.data[3] << "\n"
+        << grasp_msg.data[4] << "\n"
+        << grasp_msg.data[5] << "\n"
+        << grasp_msg.data[6] << "\n"
+        <<endl;
+    }
+    else
+        cout << "waiting to reach take pic pose\n";
+
+    return true;
+}
+
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "get_motor");
@@ -396,9 +421,10 @@ int main(int argc, char** argv)
     ros::Subscriber sub_yolo = nh.subscribe("/yolov4_motors_bboxes", 1, motor_cb);
     ros::Subscriber sub_scene_cloud = nh.subscribe("/camera/depth_registered/points", 1, motor_cloud_cb);
 
+    ros::ServiceServer service = nh.advertiseService("/motor_grasp_pose", get_pose);
     motor_cloud_pub = nh.advertise<sensor_msgs::PointCloud2> ("/motor_cloud", 1);
     motor_pose_pub = nh.advertise<visualization_msgs::Marker>("/motor_pose", 1);
-    motor_grasp_pose_pub = nh.advertise<std_msgs::Float32MultiArray>("/motor_grasp_pose", 1);
+    // motor_grasp_pose_pub = nh.advertise<std_msgs::Float32MultiArray>("/motor_grasp_pose", 1);
 
     ros::spin();
 
