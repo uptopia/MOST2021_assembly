@@ -60,3 +60,13 @@ cd ~/MOST2021_assembly
 . devel/setup.bash
 rosrun get_screw_cloud get_screw_cloud
 ```
+
+```
+cd ~/dual_arm_ws
+. devel/setup.bash
+roslaunch manipulator_h_manager dual_arm.launch en_sim:=true
+
+cd ~/dual_arm_ws
+. devel/setup.bash
+rosrun strategy assembly_grasp_strategy.py
+```
