@@ -1,0 +1,6 @@
+bool pic_pose_reached
+string task_type
+
+---
+
+float32[] grasp_pose

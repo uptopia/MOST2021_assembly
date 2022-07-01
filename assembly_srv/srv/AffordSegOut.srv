@@ -1,0 +1,13 @@
+bool picture_pose_reached
+sensor_msgs/PointCloud2 organized_cloud
+sensor_msgs/Image rgb_img
+
+---
+
+sensor_msgs/Image[] roi
+part_afford_seg/center[] centers
+int64[] bbox_xmin
+int64[] bbox_ymin
+string[] object_name
+sensor_msgs/PointCloud2 organized_cloud
+sensor_msgs/Image rgb_img

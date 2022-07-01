@@ -1,0 +1,10 @@
+sensor_msgs/PointCloud2 organized_cloud
+sensor_msgs/Image rgb_img
+uint32[] pixel_shift
+
+---
+
+obj_detect/bbox[] bboxes
+sensor_msgs/PointCloud2 organized_cloud
+sensor_msgs/Image rgb_img
+uint32[] pixel_shift

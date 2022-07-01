@@ -1,0 +1,5 @@
+bool picture_pose_reached
+
+---
+
+float32[] grasp_pose
