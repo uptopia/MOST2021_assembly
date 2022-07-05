@@ -26,6 +26,10 @@
 
 #include "assembly_srv/GraspPose.h"
 
+
+#include <cv_bridge/cv_bridge.h>
+#include <opencv2/opencv.hpp>
+
 using namespace std;
 
 typedef pcl::PointXYZRGB PointTRGB;
@@ -289,6 +293,7 @@ void motor_cloud_cb(const sensor_msgs::PointCloud2ConstPtr& organized_cloud_msg)
             float yaw = euler[0];
             float pitch = euler[1];
             float roll = euler[2];
+            //https://danceswithcode.net/engineeringnotes/rotations_in_3d/demo3D/rotations_in_3d_tool.html
 
             //=========rviz marker=========
             visualization_msgs::Marker popcorn_arrow;
@@ -318,17 +323,48 @@ void motor_cloud_cb(const sensor_msgs::PointCloud2ConstPtr& organized_cloud_msg)
             motor_pose_pub.publish(popcorn_arrow);
             //=========rviz marker=========
 
-            //pos, euler, phi
-            //(x, y, z), (), phi
-            // std_msgs::Float32MultiArray grasp_msg; 
-            grasp_msg.data.push_back(coeff_cylinder->values[0]); // x
-            grasp_msg.data.push_back(coeff_cylinder->values[1]); // y
-            grasp_msg.data.push_back(coeff_cylinder->values[2]); // z
-            grasp_msg.data.push_back(yaw); //?
-            grasp_msg.data.push_back(pitch); //?  
-            grasp_msg.data.push_back(roll); //?  
-            grasp_msg.data.push_back(0.0); // phi
-            // motor_grasp_pose_pub.publish(grasp_msg);
+            // //pos, euler, phi
+            // //(x, y, z), (), phi
+            // // std_msgs::Float32MultiArray grasp_msg; 
+            // grasp_msg.data.push_back(coeff_cylinder->values[0]); // x
+            // grasp_msg.data.push_back(coeff_cylinder->values[1]); // y
+            // grasp_msg.data.push_back(coeff_cylinder->values[2]); // z
+            // grasp_msg.data.push_back(yaw); //?
+            // grasp_msg.data.push_back(pitch); //?  
+            // grasp_msg.data.push_back(roll); //?  
+            // grasp_msg.data.push_back(0.0); // phi
+            // // motor_grasp_pose_pub.publish(grasp_msg);
+
+            float x = coeff_cylinder->values[0];
+            float y = coeff_cylinder->values[1];
+            float z = coeff_cylinder->values[2];
+
+            //change to 4*4 matrix: cam_H_motor
+            cv::Mat rvec = cv::Mat(yaw, pitch, roll);
+            cv::Mat rot =[];
+            cv::Rodrigues(rvec, rot);
+            grasp_msg.data.push_back(rot[0, 0]);
+            grasp_msg.data.push_back(rot[0, 1]);
+            grasp_msg.data.push_back(rot[0, 2]);
+            grasp_msg.data.push_back(x);
+            grasp_msg.data.push_back(rot[1, 0]);
+            grasp_msg.data.push_back(rot[1, 1]);
+            grasp_msg.data.push_back(rot[1, 2]);
+            grasp_msg.data.push_back(y);
+            grasp_msg.data.push_back(rot[2, 0]);
+            grasp_msg.data.push_back(rot[2, 1]);
+            grasp_msg.data.push_back(rot[2, 2]);
+            grasp_msg.data.push_back(z);
+            grasp_msg.data.push_back(0);
+            grasp_msg.data.push_back(0);
+            grasp_msg.data.push_back(0);
+            grasp_msg.data.push_back(1);
+
+            // cv::Mat came_H_motor = []
+            // came_H_motor = np.mat([ [rot[0, 0], rot[0, 1], rot[0, 2], x],
+            //                         [rot[1, 0], rot[1, 1], rot[1, 2], y],
+            //                         [rot[2, 0], rot[2, 1], rot[2, 2], z],
+            //                         [   0,         0,         0,        1   ] ])
 
             pcl::toROSMsg(*motor_all[n].motor_cloud, motor_cloud_msg);
             motor_cloud_msg.header.frame_id = "camera_depth_optical_frame";
@@ -396,14 +432,15 @@ bool get_pose(assembly_srv::GraspPose::Request& req, assembly_srv::GraspPose::Re
     // cout << "res.grasp_pose" << res.grasp_pose.data << endl;
     if(req.picture_pose_reached == true)
     {
-        res.grasp_pose = grasp_msg.data;
-        cout <<"grasp_msg.data " << grasp_msg.data[0] << "\n"
-        << grasp_msg.data[1] << "\n"
-        << grasp_msg.data[2] << "\n"
-        << grasp_msg.data[3] << "\n"
-        << grasp_msg.data[4] << "\n"
-        << grasp_msg.data[5] << "\n"
-        << grasp_msg.data[6] << "\n"
+        res.grasp_pose = grasp_msg.data; //float 4*4 matrix
+        cout <<"grasp_msg.data " 
+        // << grasp_msg.data[0] << "\n"    //x
+        // << grasp_msg.data[1] << "\n"    //y
+        // << grasp_msg.data[2] << "\n"    //z
+        // << grasp_msg.data[3] << "\n"    //yaw
+        // << grasp_msg.data[4] << "\n"    //pitch
+        // << grasp_msg.data[5] << "\n"    //roll
+        // << grasp_msg.data[6] << "\n"    //phi
         <<endl;
     }
     else

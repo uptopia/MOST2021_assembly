@@ -225,16 +225,23 @@ class GraspTask:
             print(x, y, z, yaw, pitch, roll, phi)
 
 
-            rvecs = np.array([yaw, pitch, roll])
-            tvecs = np.array([x, y, z])
-            rvecs = rvecs.reshape(int(len(rvecs)/3), 3)
-            tvecs = tvecs.reshape(int(len(tvecs)/3), 3)
-            rotations = []
-            rotations = cv2.Rodrigues(rvecs)
-            rotations = rotations.reshape(int(len(rotations)/9), 3, 3)
-            base_H_motor = []
+            rvec = np.array([yaw, pitch, roll])
+            tvec = np.array([x, y, z])
+            rvec = rvec.reshape(int(len(rvec)/3), 3)
+            tvec = tvec.reshape(int(len(tvec)/3), 3)
+            rot = []
+            rot = cv2.Rodrigues(rvec)
+            rot = rot.reshape(int(len(rot)/9), 3, 3)
+            came_H_motor = []
+            came_H_motor = np.mat([ [rot[0, 0], rot[0, 1], rot[0, 2],tvec[0]],
+                                    [rot[1, 0], rot[1, 1], rot[1, 2],tvec[1]],
+                                    [rot[2, 0], rot[2, 1], rot[2, 2],tvec[2]],
+                                    [   0,         0,         0,        1   ] ])
+
+
+
             fb = self.dual_arm.get_feedback(arm_side)
-            base_H_motor = self.visiontoArm(rotations, tvecs, fb.orientation)
+            base_H_motor = self.visiontoArm(rot, tvec, fb.orientation)
             print("[robot_coord] motor_grasp_pose Float32MultiArray")
             print(x, y, z, yaw, pitch, roll, phi)
 
