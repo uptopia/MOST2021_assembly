@@ -474,15 +474,7 @@ bool get_pose(assembly_srv::GraspPose::Request& req, assembly_srv::GraspPose::Re
     if(req.picture_pose_reached == true)
     {
         res.grasp_pose = grasp_msg.data; //float 4*4 matrix
-        cout <<"grasp_msg.data " 
-        // << grasp_msg.data[0] << "\n"    //x
-        // << grasp_msg.data[1] << "\n"    //y
-        // << grasp_msg.data[2] << "\n"    //z
-        // << grasp_msg.data[3] << "\n"    //yaw
-        // << grasp_msg.data[4] << "\n"    //pitch
-        // << grasp_msg.data[5] << "\n"    //roll
-        // << grasp_msg.data[6] << "\n"    //phi
-        <<endl;
+        cout <<"grasp_msg.data response sent" << endl;
     }
     else
         cout << "waiting to reach take pic pose\n";
