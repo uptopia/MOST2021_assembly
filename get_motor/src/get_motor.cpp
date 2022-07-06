@@ -63,7 +63,7 @@ std::vector<Motor> motor_all{};
 std::string file_path_cloud_organized = "organized_cloud_tmp.pcd";
 pcl::PointCloud<PointTRGB>::Ptr organized_cloud_ori(new pcl::PointCloud<PointTRGB>);
 
-ros::Publisher motor_cloud_pub, motor_pose_pub;//, motor_grasp_pose_pub;
+ros::Publisher motor_cloud_pub, motor_pose_pub, motor_grasp_pose_pub;//, motor_grasp_pose_pub;
 sensor_msgs::PointCloud2 motor_cloud_msg;
 std_msgs::Float32MultiArray grasp_msg; 
 void estimate_motor_pose(pcl::PointCloud<PointTRGB>::Ptr motor_bbox_cloud, pcl::ModelCoefficients::Ptr coeff_scene_plane, pcl::PointCloud<PointTRGB>::Ptr motor_cloud, pcl::ModelCoefficients::Ptr coeff_cylinder)
@@ -284,6 +284,8 @@ void motor_cloud_cb(const sensor_msgs::PointCloud2ConstPtr& organized_cloud_msg)
             motor_all[n].motor_cloud = boost::make_shared<pcl::PointCloud<PointTRGB>>();
             pcl::ModelCoefficients::Ptr coeff_cylinder (new pcl::ModelCoefficients);
             estimate_motor_pose(motor_all[n].motor_bbox_cloud, coeff_plane, motor_all[n].motor_cloud, coeff_cylinder);
+            ////point_on_axis.x,y,z; axis_direction.x,y,z; radius
+            // std::cerr << "Cylinder coeff" << *coeff_cylinder << endl;
 
             Eigen::Vector3d vv1 = Eigen::Vector3d(1.0, 0.0, 0.0);
             Eigen::Vector3d vv2 = Eigen::Vector3d(coeff_cylinder->values[3], coeff_cylinder->values[4], coeff_cylinder->values[5]);
@@ -293,34 +295,67 @@ void motor_cloud_cb(const sensor_msgs::PointCloud2ConstPtr& organized_cloud_msg)
             float yaw = euler[0];
             float pitch = euler[1];
             float roll = euler[2];
+
+            Eigen::Vector3d vv3 = Eigen::Vector3d(0.0, 0.0, 1.0);
+            Eigen::Quaterniond out1 = Eigen::Quaterniond::FromTwoVectors(vv3, vv2);
+            Eigen::Vector3d euler1 = out1.toRotationMatrix().eulerAngles(2, 1, 0);
+            
             //https://danceswithcode.net/engineeringnotes/rotations_in_3d/demo3D/rotations_in_3d_tool.html
 
             //=========rviz marker=========
-            visualization_msgs::Marker popcorn_arrow;
-            popcorn_arrow.header.frame_id = "camera_depth_optical_frame";
-            popcorn_arrow.header.stamp = ros::Time();
-            popcorn_arrow.ns = "my_namespace";
-            popcorn_arrow.id = 0;
-            popcorn_arrow.type = visualization_msgs::Marker::ARROW;
-            popcorn_arrow.action = visualization_msgs::Marker::ADD;
-            popcorn_arrow.pose.position.x = coeff_cylinder->values[0];
-            popcorn_arrow.pose.position.y = coeff_cylinder->values[1];
-            popcorn_arrow.pose.position.z = coeff_cylinder->values[2];
-            popcorn_arrow.pose.orientation.x = out.x();//pose_msg.orientation.x;
-            popcorn_arrow.pose.orientation.y = out.y();//pose_msg.orientation.y;
-            popcorn_arrow.pose.orientation.z = out.z();//pose_msg.orientation.z;
-            popcorn_arrow.pose.orientation.w = out.w();//pose_msg.orientation.w;
-            popcorn_arrow.scale.x = 0.150;//sqrt(pow(coeff_cylinder->values[3],2)+pow(coeff_cylinder->values[4],2)+pow(coeff_cylinder->values[5],2)); //length
-            popcorn_arrow.scale.y = 0.008;  //width
-            popcorn_arrow.scale.z = 0.008;  //height
-            popcorn_arrow.color.a = 1.0;    // Don't forget to set the alpha!
-            popcorn_arrow.color.r = 0.0;
-            popcorn_arrow.color.g = 0.0;
-            popcorn_arrow.color.b = 1.0;
+            visualization_msgs::Marker motor_arrow;
+            motor_arrow.header.frame_id = "camera_depth_optical_frame";
+            motor_arrow.header.stamp = ros::Time();
+            motor_arrow.ns = "my_namespace";
+            motor_arrow.id = 0;
+            motor_arrow.type = visualization_msgs::Marker::ARROW;
+            motor_arrow.action = visualization_msgs::Marker::ADD;
+            motor_arrow.pose.position.x = coeff_cylinder->values[0];
+            motor_arrow.pose.position.y = coeff_cylinder->values[1];
+            motor_arrow.pose.position.z = coeff_cylinder->values[2];
+            motor_arrow.pose.orientation.x = out.x();//pose_msg.orientation.x;
+            motor_arrow.pose.orientation.y = out.y();//pose_msg.orientation.y;
+            motor_arrow.pose.orientation.z = out.z();//pose_msg.orientation.z;
+            motor_arrow.pose.orientation.w = out.w();//pose_msg.orientation.w;
+            motor_arrow.scale.x = 0.150;//sqrt(pow(coeff_cylinder->values[3],2)+pow(coeff_cylinder->values[4],2)+pow(coeff_cylinder->values[5],2)); //length
+            motor_arrow.scale.y = 0.008;  //width
+            motor_arrow.scale.z = 0.008;  //height
+            motor_arrow.color.a = 1.0;    // Don't forget to set the alpha!
+            motor_arrow.color.r = 1.0;
+            motor_arrow.color.g = 0.0;
+            motor_arrow.color.b = 0.0;
 
-            cout<< "popcorn_pose_topic rviz marker" <<endl;
+            cout<< "motor_pose_topic rviz marker" <<endl;
 
-            motor_pose_pub.publish(popcorn_arrow);
+            motor_pose_pub.publish(motor_arrow);
+            //=========rviz marker=========
+
+            //=========rviz marker=========
+            visualization_msgs::Marker grasp_arrow;
+            grasp_arrow.header.frame_id = "camera_depth_optical_frame";
+            grasp_arrow.header.stamp = ros::Time();
+            grasp_arrow.ns = "my_namespace";
+            grasp_arrow.id = 0;
+            grasp_arrow.type = visualization_msgs::Marker::ARROW;
+            grasp_arrow.action = visualization_msgs::Marker::ADD;
+            grasp_arrow.pose.position.x = coeff_cylinder->values[0];
+            grasp_arrow.pose.position.y = coeff_cylinder->values[1];
+            grasp_arrow.pose.position.z = coeff_cylinder->values[2];
+            grasp_arrow.pose.orientation.x = out1.x();//pose_msg.orientation.x;
+            grasp_arrow.pose.orientation.y = out1.y();//pose_msg.orientation.y;
+            grasp_arrow.pose.orientation.z = out1.z();//pose_msg.orientation.z;
+            grasp_arrow.pose.orientation.w = out1.w();//pose_msg.orientation.w;
+            grasp_arrow.scale.x = 0.150;//sqrt(pow(coeff_cylinder->values[3],2)+pow(coeff_cylinder->values[4],2)+pow(coeff_cylinder->values[5],2)); //length
+            grasp_arrow.scale.y = 0.008;  //width
+            grasp_arrow.scale.z = 0.008;  //height
+            grasp_arrow.color.a = 1.0;    // Don't forget to set the alpha!
+            grasp_arrow.color.r = 0.0;
+            grasp_arrow.color.g = 0.0;
+            grasp_arrow.color.b = 1.0;
+
+            cout<< "grasp_pose_topic rviz marker" <<endl;
+
+            motor_grasp_pose_pub.publish(grasp_arrow);
             //=========rviz marker=========
 
             // //pos, euler, phi
@@ -340,20 +375,26 @@ void motor_cloud_cb(const sensor_msgs::PointCloud2ConstPtr& organized_cloud_msg)
             float z = coeff_cylinder->values[2];
 
             //change to 4*4 matrix: cam_H_motor
-            cv::Mat rvec = cv::Mat(yaw, pitch, roll);
-            cv::Mat rot =[];
+            cv::Mat rvec= cv::Mat::zeros(1,3,CV_32F); //(yaw, pitch, roll);
+            cv::Mat rot = cv::Mat::zeros(3, 3, CV_32F);
+            rvec.at<float>(0,0)=yaw;
+            rvec.at<float>(0,1)=pitch;
+            rvec.at<float>(0,2)=roll;
+            
             cv::Rodrigues(rvec, rot);
-            grasp_msg.data.push_back(rot[0, 0]);
-            grasp_msg.data.push_back(rot[0, 1]);
-            grasp_msg.data.push_back(rot[0, 2]);
+            cout << "rvec:\n" << rvec
+                 << "rot:\n"  << rot << endl;
+            grasp_msg.data.push_back(rot.at<float>(0, 0));
+            grasp_msg.data.push_back(rot.at<float>(0, 1));
+            grasp_msg.data.push_back(rot.at<float>(0, 2));
             grasp_msg.data.push_back(x);
-            grasp_msg.data.push_back(rot[1, 0]);
-            grasp_msg.data.push_back(rot[1, 1]);
-            grasp_msg.data.push_back(rot[1, 2]);
+            grasp_msg.data.push_back(rot.at<float>(1, 0));
+            grasp_msg.data.push_back(rot.at<float>(1, 1));
+            grasp_msg.data.push_back(rot.at<float>(1, 2));
             grasp_msg.data.push_back(y);
-            grasp_msg.data.push_back(rot[2, 0]);
-            grasp_msg.data.push_back(rot[2, 1]);
-            grasp_msg.data.push_back(rot[2, 2]);
+            grasp_msg.data.push_back(rot.at<float>(2, 0));
+            grasp_msg.data.push_back(rot.at<float>(2, 1));
+            grasp_msg.data.push_back(rot.at<float>(2, 2));
             grasp_msg.data.push_back(z);
             grasp_msg.data.push_back(0);
             grasp_msg.data.push_back(0);
@@ -380,31 +421,31 @@ void motor_cloud_cb(const sensor_msgs::PointCloud2ConstPtr& organized_cloud_msg)
 
         // //=========rviz marker=========
         // Eigen::Quaterniond AQ;
-        // visualization_msgs::Marker popcorn_arrow;
-        // popcorn_arrow.header.frame_id = "camera_color_optical_frame";
-        // popcorn_arrow.header.stamp = ros::Time();
-        // popcorn_arrow.ns = "my_namespace";
-        // popcorn_arrow.id = 0;
-        // popcorn_arrow.type = visualization_msgs::Marker::ARROW;
-        // popcorn_arrow.action = visualization_msgs::Marker::ADD;
-        // popcorn_arrow.pose.position.x = pt_c1.x;
-        // popcorn_arrow.pose.position.y = pt_c1.y;
-        // popcorn_arrow.pose.position.z = pt_c1.z;
-        // popcorn_arrow.pose.orientation.x = out.x();//pose_msg.orientation.x;
-        // popcorn_arrow.pose.orientation.y = out.y();//pose_msg.orientation.y;
-        // popcorn_arrow.pose.orientation.z = out.z();//pose_msg.orientation.z;
-        // popcorn_arrow.pose.orientation.w = out.w();//pose_msg.orientation.w;
-        // popcorn_arrow.scale.x = sqrt(pow(line_c1_c2_x,2)+pow(line_c1_c2_y,2)+pow(line_c1_c2_z,2)); //length
-        // popcorn_arrow.scale.y = 0.003;  //width
-        // popcorn_arrow.scale.z = 0.003;  //height
-        // popcorn_arrow.color.a = 1.0;    // Don't forget to set the alpha!
-        // popcorn_arrow.color.r = 0.0;
-        // popcorn_arrow.color.g = 0.0;
-        // popcorn_arrow.color.b = 1.0;
+        // visualization_msgs::Marker motor_arrow;
+        // motor_arrow.header.frame_id = "camera_color_optical_frame";
+        // motor_arrow.header.stamp = ros::Time();
+        // motor_arrow.ns = "my_namespace";
+        // motor_arrow.id = 0;
+        // motor_arrow.type = visualization_msgs::Marker::ARROW;
+        // motor_arrow.action = visualization_msgs::Marker::ADD;
+        // motor_arrow.pose.position.x = pt_c1.x;
+        // motor_arrow.pose.position.y = pt_c1.y;
+        // motor_arrow.pose.position.z = pt_c1.z;
+        // motor_arrow.pose.orientation.x = out.x();//pose_msg.orientation.x;
+        // motor_arrow.pose.orientation.y = out.y();//pose_msg.orientation.y;
+        // motor_arrow.pose.orientation.z = out.z();//pose_msg.orientation.z;
+        // motor_arrow.pose.orientation.w = out.w();//pose_msg.orientation.w;
+        // motor_arrow.scale.x = sqrt(pow(line_c1_c2_x,2)+pow(line_c1_c2_y,2)+pow(line_c1_c2_z,2)); //length
+        // motor_arrow.scale.y = 0.003;  //width
+        // motor_arrow.scale.z = 0.003;  //height
+        // motor_arrow.color.a = 1.0;    // Don't forget to set the alpha!
+        // motor_arrow.color.r = 0.0;
+        // motor_arrow.color.g = 0.0;
+        // motor_arrow.color.b = 1.0;
 
-        // cout<< "popcorn_pose_topic rviz marker" <<endl;
+        // cout<< "motor_pose_topic rviz marker" <<endl;
 
-        // motor_pose_pub.publish(popcorn_arrow);
+        // motor_pose_pub.publish(motor_arrow);
         // //=========rviz marker=========
 
 
@@ -461,6 +502,7 @@ int main(int argc, char** argv)
     ros::ServiceServer service = nh.advertiseService("/motor_grasp_pose", get_pose);
     motor_cloud_pub = nh.advertise<sensor_msgs::PointCloud2> ("/motor_cloud", 1);
     motor_pose_pub = nh.advertise<visualization_msgs::Marker>("/motor_pose", 1);
+    motor_grasp_pose_pub = nh.advertise<visualization_msgs::Marker>("/motor_grasp_pose", 1);
     // motor_grasp_pose_pub = nh.advertise<std_msgs::Float32MultiArray>("/motor_grasp_pose", 1);
 
     ros::spin();
@@ -485,6 +527,7 @@ int main(int argc, char** argv)
 //     ne.setInputCloud(motor);
 //     ne.setKSearch(50);
 //     ne.compute(*motor_normal);
+
 
 //     // ransac cylinder to motor
 //     pcl::ModelCoefficients::Ptr coeff_cylinder (new pcl::ModelCoefficients);
