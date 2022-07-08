@@ -477,7 +477,7 @@ bool get_pose(assembly_srv::GraspPose::Request& req, assembly_srv::GraspPose::Re
         cout <<"grasp_msg.data response sent" << endl;
     }
     else
-        cout << "waiting to reach take pic pose\n";
+        cout << "[motor] waiting to reach take pic pose\n";
 
     return true;
 }
