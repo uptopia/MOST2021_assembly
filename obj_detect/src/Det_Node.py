@@ -18,7 +18,7 @@ from tool.darknet2pytorch import Darknet
 
 from obj_detect.msg import bbox, bboxes
 
-use_cuda = True
+use_cuda = False
 show_res = True
 n = 1
 
@@ -49,7 +49,10 @@ class Det_Node:
         m = Darknet(cfg)
         m.print_network()
         m.load_weights(w)
-        self.m = m.cuda()
+        if use_cuda == True:
+            self.m = m.cuda()
+        else:
+            self.m = m
         self.class_names = load_class_names(namesfile)
 
     def imageCallback(self, img_msg):

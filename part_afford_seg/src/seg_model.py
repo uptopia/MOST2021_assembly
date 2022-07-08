@@ -8,6 +8,7 @@ from torchvision import transforms
 from dataloaders.utils import  *
 from torchvision.utils import make_grid, save_image
 
+use_cuda = False
 
 class build_seg_model:
     def __init__(self, model="mobilenet", class_num=6, ckpt= None):
@@ -23,7 +24,8 @@ class build_seg_model:
             tr.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
             tr.ToTensor()])
 
-        self.seg_m.cuda()
+        if use_cuda == True:
+            self.seg_m.cuda()
         self.seg_m.eval()
     
     def run(self, roi_img):

@@ -3,7 +3,7 @@
 <launch>
 
   <!-- Open Realsense -->
-  <arg name="depth_width"               default="1280"/>
+  <!-- <arg name="depth_width"               default="1280"/>
   <arg name="depth_height"              default="720"/>
   <arg name="enable_depth"              default="true"/>
   <arg name="color_width"               default="1280"/>
@@ -16,10 +16,10 @@
   <arg name="align_depth"               default="false"/>
   <arg name="publish_tf"                default="true"/>
   <arg name="tf_publish_rate"           default="0"/>
-  <arg name="filters"                   default="pointcloud"/>
+  <arg name="filters"                   default="pointcloud"/> -->
 
   <!-- Include main launch file -->
-  <include file="$(find realsense2_camera)/launch/rs_rgbd.launch">
+  <!-- <include file="$(find realsense2_camera)/launch/rs_rgbd.launch">
     <arg name="depth_width"               value="$(arg depth_width      )"/>
     <arg name="depth_height"              value="$(arg depth_height     )"/>
     <arg name="enable_depth"              value="$(arg enable_depth     )"/>
@@ -34,7 +34,7 @@
     <arg name="publish_tf"                value="$(arg publish_tf       )"/>
     <arg name="tf_publish_rate"           value="$(arg tf_publish_rate  )"/>
     <arg name="filters"                   value="$(arg filters          )"/>
-  </include>
+  </include> -->
 
   <!-- Select Image ROI -->
   <node pkg="select_workspace" type="select_workspace.py" name="select_workspace"/>
