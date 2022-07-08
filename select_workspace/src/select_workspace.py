@@ -7,7 +7,7 @@ from cv_bridge import CvBridge, CvBridgeError
 import rospy
 from sensor_msgs.msg import Image as msg_Image
 
-show_res = True
+show_res = False
 n = 1
 # dir = "./sampling_data/"
 class Select_workspace_Node:

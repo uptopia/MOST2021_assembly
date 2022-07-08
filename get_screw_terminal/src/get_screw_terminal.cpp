@@ -80,7 +80,6 @@ void screw_cb(const part_afford_seg::seg_out::ConstPtr& seg_msg)
                     if(seg_msg->object_name[i] == "screw")
                     {
                         if(((int)rgbChannels[2].at<uchar>(y, x) > 0) || ((int)rgbChannels[1].at<uchar>(y, x) > 0))
-                            // cout << (int)rgbChannels[2].at<uchar>(idx_y, idx_x) << "; " << (int)rgbChannels[1].at<uchar>(idx_y, idx_x) << endl;
                             screw->push_back(pt);
                     }
                     else if(seg_msg->object_name[i] == "terminal+")
@@ -93,16 +92,18 @@ void screw_cb(const part_afford_seg::seg_out::ConstPtr& seg_msg)
                         if(((int)rgbChannels[1].at<uchar>(y, x) > 0) || ((int)rgbChannels[0].at<uchar>(y, x) > 0))
                             terminal_neg->push_back(pt);
                     }
-                    // else
-                    // {
-
-                    // }
                 }
             }
         }
 
-        PointTRGB arrow_head = organized_cloud_ori->at(x_shift + seg_msg->centers[i].c1_x, y_shift + seg_msg->centers[i].c1_y);
-        PointTRGB arrow_body = organized_cloud_ori->at(x_shift + seg_msg->centers[i].c2_x, y_shift + seg_msg->centers[i].c2_y);
+        PointTRGB arrow_head, arrow_body;
+        if(seg_msg->object_name[i] == "screw")
+        {
+            arrow_head = organized_cloud_ori->at(x_shift + seg_msg->centers[i].c1_x, y_shift + seg_msg->centers[i].c1_y);
+            arrow_body = organized_cloud_ori->at(x_shift + seg_msg->centers[i].c2_x, y_shift + seg_msg->centers[i].c2_y);
+            cout<< "arrow_head: " << arrow_head.x << ", " << arrow_head.y << ", " << arrow_head.z << endl;
+            cout<< "arrow_body: " << arrow_body.x << ", " << arrow_body.y << ", " << arrow_body.z << endl;
+        }
 
         //=========rviz marker=========
         Eigen::Vector3d vv1 = Eigen::Vector3d(0.0, 0.0, 0.0);//arrow_head.x, arrow_head.y, arrow_head.z);
@@ -125,9 +126,9 @@ void screw_cb(const part_afford_seg::seg_out::ConstPtr& seg_msg)
         screw_arrow.id = 0;
         screw_arrow.type = visualization_msgs::Marker::ARROW;
         screw_arrow.action = visualization_msgs::Marker::ADD;
-        screw_arrow.pose.position.x = arrow_head.x;
-        screw_arrow.pose.position.y = arrow_head.y;
-        screw_arrow.pose.position.z = arrow_head.z;
+        screw_arrow.pose.position.x = arrow_body.x;
+        screw_arrow.pose.position.y = arrow_body.y;
+        screw_arrow.pose.position.z = -arrow_body.z;
         screw_arrow.pose.orientation.x = out.x();
         screw_arrow.pose.orientation.y = out.y();
         screw_arrow.pose.orientation.z = out.z();
@@ -153,9 +154,9 @@ void screw_cb(const part_afford_seg::seg_out::ConstPtr& seg_msg)
         grasp_arrow.id = 0;
         grasp_arrow.type = visualization_msgs::Marker::ARROW;
         grasp_arrow.action = visualization_msgs::Marker::ADD;
-        grasp_arrow.pose.position.x = arrow_head.x;
-        grasp_arrow.pose.position.y = arrow_head.y;
-        grasp_arrow.pose.position.z = arrow_head.z;
+        grasp_arrow.pose.position.x = arrow_body.x;
+        grasp_arrow.pose.position.y = arrow_body.y;
+        grasp_arrow.pose.position.z = -arrow_body.z;
         grasp_arrow.pose.orientation.x = out1.x();//pose_msg.orientation.x;
         grasp_arrow.pose.orientation.y = out1.y();//pose_msg.orientation.y;
         grasp_arrow.pose.orientation.z = out1.z();//pose_msg.orientation.z;
@@ -173,17 +174,17 @@ void screw_cb(const part_afford_seg::seg_out::ConstPtr& seg_msg)
         screw_grasp_pose_pub.publish(grasp_arrow);
         //=========rviz marker=========
 
-        //pos, euler, phi
-        //(x, y, z), (), phi
-        std_msgs::Float32MultiArray grasp_msg; 
-        grasp_msg.data.push_back(arrow_head.x); // x
-        grasp_msg.data.push_back(arrow_head.y); // y
-        grasp_msg.data.push_back(arrow_head.z); // z
-        grasp_msg.data.push_back(yaw); //?
-        grasp_msg.data.push_back(pitch); //?  
-        grasp_msg.data.push_back(roll); //?  
-        grasp_msg.data.push_back(0.0); // phi
-        screw_grasp_pose_pub.publish(grasp_msg);
+        // //pos, euler, phi
+        // //(x, y, z), (), phi
+        // std_msgs::Float32MultiArray grasp_msg; 
+        // grasp_msg.data.push_back(arrow_head.x); // x
+        // grasp_msg.data.push_back(arrow_head.y); // y
+        // grasp_msg.data.push_back(arrow_head.z); // z
+        // grasp_msg.data.push_back(yaw); //?
+        // grasp_msg.data.push_back(pitch); //?  
+        // grasp_msg.data.push_back(roll); //?  
+        // grasp_msg.data.push_back(0.0); // phi
+        // screw_grasp_pose_pub.publish(grasp_msg);
     }
     cout << "screw points " << screw->points.size() <<endl;
     pcl::toROSMsg(*screw, screw_msg);

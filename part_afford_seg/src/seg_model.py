@@ -8,7 +8,7 @@ from torchvision import transforms
 from dataloaders.utils import  *
 from torchvision.utils import make_grid, save_image
 
-use_cuda = False
+use_cuda = True
 
 class build_seg_model:
     def __init__(self, model="mobilenet", class_num=6, ckpt= None):

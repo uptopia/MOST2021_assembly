@@ -21,7 +21,7 @@ from seg_model import build_seg_model
 from obj_detect.msg import bbox, bboxes
 from part_afford_seg.msg import seg_out, center
 
-show_all_mask = True
+show_all_mask = False
 
 def get_args():
     parser = argparse.ArgumentParser('Parse trained model.')
@@ -74,7 +74,7 @@ class Afford_Node:
         rospy.init_node("Afford_Node")
         self.bridge = CvBridge()
         self.seg_m = build_seg_model(model="mobilenet", class_num=6, ckpt=pthfile)
-        rospy.Subscriber("/camera/color/image_raw", msg_Image, self.imageCallback)
+        rospy.Subscriber("/camera/color/image_raw_workspace", msg_Image, self.imageCallback)
         rospy.Subscriber("/yolov4_other_objs_bboxes", bboxes, self.bboxes_Callback)
         self.pub = rospy.Publisher('/seg_out', seg_out, queue_size=1)
         rospy.spin()
@@ -91,15 +91,21 @@ class Afford_Node:
             mask_all = np.zeros((430,660,3))
 
         for bb in bbox_msg.bboxes:
-            roi = self.cv_image[bb.ymin:bb.ymax, bb.xmin:bb.xmax]
+            roi = self.cv_image[bb.ymin:bb.ymax, bb.xmin:bb.xmax]   #size: bbox
+            h1, w1 = roi.shape[:2]
+            print("roi size:", h1, w1)
 
             seg_o.bbox_xmin.append(bb.xmin)
             seg_o.bbox_ymin.append(bb.ymin)
             seg_o.object_name.append(bb.object_name)
 
             if bb.object_name in need_seg_class:
-                grid_image = self.seg_m.run(roi)
+                grid_image = self.seg_m.run(roi)    #size: bbox->(224, 224)
+                h2, w2 = roi.shape[:2]
+                print("grid_image size:", h2, w2)
                 grid_image = cv2.resize(grid_image, (bb.xmax-bb.xmin, bb.ymax-bb.ymin))
+                h3, w3 = roi.shape[:2]
+                print("grid_image size:", h3, w3)
                 cv_im = self.bridge.cv2_to_imgmsg(grid_image, "64FC3")
                 seg_o.roi.append(cv_im)
             else:
@@ -118,6 +124,7 @@ class Afford_Node:
                 c.c2_y = c2_c[1]
                 c.angle = angle
                 seg_o.centers.append(c)
+                print("center: ", c.c1_x+bb.xmin, c.c1_y+bb.ymin, c.c2_x+bb.xmin,c.c2_y+bb.ymin)
 
             if bb.object_name == 'screw_n' or bb.object_name == 'motor': #bb.object_name == 1 or bb.object_name == 2 :
                 c = center()
@@ -136,11 +143,11 @@ class Afford_Node:
                 c.angle = angle
                 seg_o.centers.append(c)            
 
-            cv2.imshow(str(n), grid_image)
-            cv2.waitKey(1)
-            n+=1 
-
             if show_all_mask:
+                cv2.imshow(str(n), grid_image)
+                cv2.waitKey(1)
+                n+=1 
+
                 mask_all[bb.ymin:bb.ymax, bb.xmin:bb.xmax] += grid_image
                 if c.check == True:
                     cv2.circle(mask_all, (c.c1_x+bb.xmin, c.c1_y+bb.ymin), 2, (1, 227, 254), -1)

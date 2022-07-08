@@ -18,8 +18,8 @@ from tool.darknet2pytorch import Darknet
 
 from obj_detect.msg import bbox, bboxes
 
-use_cuda = False
-show_res = True
+use_cuda = True
+show_res = False
 n = 1
 
 def get_args():
@@ -39,7 +39,7 @@ class Det_Node:
     def __init__(self, cfg, w, namesfile) -> None:
         rospy.init_node("Det_Node")
         self.bridge = CvBridge()
-        rospy.Subscriber("/camera/color/image_raw", msg_Image, self.imageCallback)
+        rospy.Subscriber("/camera/color/image_raw_workspace", msg_Image, self.imageCallback)
         self.pub_other_objs = rospy.Publisher('/yolov4_other_objs_bboxes', bboxes, queue_size=10)
         self.pub_motors = rospy.Publisher('/yolov4_motors_bboxes', bboxes, queue_size=10)
         self.init_model(cfg, w, namesfile)
