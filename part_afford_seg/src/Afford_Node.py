@@ -74,7 +74,7 @@ class Afford_Node:
         rospy.init_node("Afford_Node")
         self.bridge = CvBridge()
         self.seg_m = build_seg_model(model="mobilenet", class_num=6, ckpt=pthfile)
-        rospy.Subscriber("/camera/color/image_raw_workspace", msg_Image, self.imageCallback)
+        rospy.Subscriber("/camera/color/image_raw", msg_Image, self.imageCallback)
         rospy.Subscriber("/yolov4_other_objs_bboxes", bboxes, self.bboxes_Callback)
         self.pub = rospy.Publisher('/seg_out', seg_out, queue_size=1)
         rospy.spin()

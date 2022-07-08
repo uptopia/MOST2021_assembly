@@ -70,3 +70,10 @@ cd ~/dual_arm_ws
 . devel/setup.bash
 rosrun strategy assembly_grasp_strategy.py
 ```
+
+### rosbag
+```
+roscore
+rosbag play -l MOST2021_assembly_rosbag.bag
+rostopic list 
+```
