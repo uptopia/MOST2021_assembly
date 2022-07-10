@@ -29,7 +29,7 @@ pcl::PointCloud<PointTRGB>::Ptr terminal_pos(new pcl::PointCloud<PointTRGB>);
 pcl::PointCloud<PointTRGB>::Ptr terminal_neg(new pcl::PointCloud<PointTRGB>);
 pcl::PointCloud<PointTRGB>::Ptr organized_cloud_ori(new pcl::PointCloud<PointTRGB>);
 
-ros::Publisher screw_pub, screw_pose_pub, terminal_pub, terminal_pose_pub, screw_grasp_pose_pub, terminal_grasp_pose_pub;
+ros::Publisher screw_pub, screw_pose_pub, termA_pub, termA_pose_pub, screw_grasp_pose_pub, termA_grasp_pose_pub;
 sensor_msgs::PointCloud2 screw_msg, terminal_msg;
 std_msgs::Float32MultiArray screw_grasp_msg, terminal_grasp_msg; 
 void screw_cb(const part_afford_seg::seg_out::ConstPtr& seg_msg)
@@ -96,7 +96,7 @@ void screw_cb(const part_afford_seg::seg_out::ConstPtr& seg_msg)
             }
         }
 
-        PointTRGB arrow_head, arrow_body;
+        PointTRGB arrow_head, arrow_body, term_headA, term_bodyA, term_headB, term_bodyB;
         if(seg_msg->object_name[i] == "screw")
         {
             arrow_head = organized_cloud_ori->at(x_shift + seg_msg->centers[i].c1_x, y_shift + seg_msg->centers[i].c1_y);
@@ -175,6 +175,84 @@ void screw_cb(const part_afford_seg::seg_out::ConstPtr& seg_msg)
             screw_grasp_pose_pub.publish(grasp_arrow);
             //=========rviz marker=========
         }
+        else if(seg_msg->object_name[i] == "terminal-")
+        {
+            term_headA = organized_cloud_ori->at(x_shift + seg_msg->centers[i].c1_x, y_shift + seg_msg->centers[i].c1_y);
+            term_bodyA = organized_cloud_ori->at(x_shift + seg_msg->centers[i].c2_x, y_shift + seg_msg->centers[i].c2_y);
+            cout<< "term_headA: " << term_headA.x << ", " << term_headA.y << ", " << term_headA.z << endl;
+            cout<< "term_bodyA: " << term_bodyA.x << ", " << term_bodyA.y << ", " << term_bodyA.z << endl;
+
+            //=========rviz marker=========
+            Eigen::Vector3d vv1 = Eigen::Vector3d(1.0, 0.0, 0.0);//term_headA.x, term_headA.y, term_headA.z);
+            Eigen::Vector3d vv2 = Eigen::Vector3d(term_bodyA.x - term_headA.x, term_bodyA.y - term_headA.y, term_bodyA.z - term_headA.z);
+            cout << "vv1 = " <<vv1<<endl;
+            cout << "vv2 = " <<vv2<<endl;
+            vv2.normalize();
+            Eigen::Quaterniond out = Eigen::Quaterniond::FromTwoVectors(vv1, vv2);
+            Eigen::Vector3d euler = out.toRotationMatrix().eulerAngles(2, 1, 0);
+            float yaw = euler[0];
+            float pitch = euler[1];
+            float roll = euler[2];
+
+            Eigen::Vector3d vv3 = Eigen::Vector3d(0.0, 0.0, 1.0);
+            Eigen::Quaterniond out1 = Eigen::Quaterniond::FromTwoVectors(vv3, vv2);
+            Eigen::Vector3d euler1 = out1.toRotationMatrix().eulerAngles(2, 1, 0);
+
+            visualization_msgs::Marker term_arrowA;
+            term_arrowA.header.frame_id = "camera_depth_optical_frame";
+            term_arrowA.header.stamp = ros::Time();
+            term_arrowA.ns = "my_namespace";
+            term_arrowA.id = 0;
+            term_arrowA.type = visualization_msgs::Marker::ARROW;
+            term_arrowA.action = visualization_msgs::Marker::ADD;
+            term_arrowA.pose.position.x = term_headA.x;
+            term_arrowA.pose.position.y = term_headA.y;
+            term_arrowA.pose.position.z = term_headA.z;
+            term_arrowA.pose.orientation.x = out.x();
+            term_arrowA.pose.orientation.y = out.y();
+            term_arrowA.pose.orientation.z = out.z();
+            term_arrowA.pose.orientation.w = out.w();
+            term_arrowA.scale.x = 0.050;
+            term_arrowA.scale.y = 0.008;  //width
+            term_arrowA.scale.z = 0.008;  //height
+            term_arrowA.color.a = 1.0;    // Don't forget to set the alpha!
+            term_arrowA.color.r = 1.0;
+            term_arrowA.color.g = 0.0;
+            term_arrowA.color.b = 0.0;
+
+            cout<< "termA_pose rviz marker" <<endl;
+
+            termA_pose_pub.publish(term_arrowA);
+            //=========rviz marker=========
+
+            //=========rviz marker=========
+            visualization_msgs::Marker grasp_arrow;
+            grasp_arrow.header.frame_id = "camera_depth_optical_frame";
+            grasp_arrow.header.stamp = ros::Time();
+            grasp_arrow.ns = "my_namespace";
+            grasp_arrow.id = 0;
+            grasp_arrow.type = visualization_msgs::Marker::ARROW;
+            grasp_arrow.action = visualization_msgs::Marker::ADD;
+            grasp_arrow.pose.position.x = term_headA.x;
+            grasp_arrow.pose.position.y = term_headA.y;
+            grasp_arrow.pose.position.z = term_headA.z;
+            grasp_arrow.pose.orientation.x = out1.x();//pose_msg.orientation.x;
+            grasp_arrow.pose.orientation.y = out1.y();//pose_msg.orientation.y;
+            grasp_arrow.pose.orientation.z = out1.z();//pose_msg.orientation.z;
+            grasp_arrow.pose.orientation.w = out1.w();//pose_msg.orientation.w;
+            grasp_arrow.scale.x = 0.050;//sqrt(pow(coeff_cylinder->values[3],2)+pow(coeff_cylinder->values[4],2)+pow(coeff_cylinder->values[5],2)); //length
+            grasp_arrow.scale.y = 0.008;  //width
+            grasp_arrow.scale.z = 0.008;  //height
+            grasp_arrow.color.a = 1.0;    // Don't forget to set the alpha!
+            grasp_arrow.color.r = 0.0;
+            grasp_arrow.color.g = 0.0;
+            grasp_arrow.color.b = 1.0;
+
+            cout<< "termA_pose_topic rviz marker" <<endl;
+
+            termA_grasp_pose_pub.publish(grasp_arrow);
+            //=========rviz marker=========
+        }
 
         
 
@@ -249,11 +327,17 @@ int main(int argc, char** argv)
     screw_grasp_pose_pub = nh.advertise<visualization_msgs::Marker>("screw_grasp_pose", 1);
     ros::ServiceServer screw_service = nh.advertiseService("/screw_grasp_pose", get_screw_pose);
 
-    //terminal
-    terminal_pub = nh.advertise<sensor_msgs::PointCloud2>("terminal_cloud", 1);
-    terminal_pose_pub = nh.advertise<visualization_msgs::Marker>("terminal_pose", 1);
-    terminal_grasp_pose_pub = nh.advertise<visualization_msgs::Marker>("terminal_grasp_pose", 1);
-    ros::ServiceServer terminal_service = nh.advertiseService("/terminal_grasp_pose", get_terminal_pose);
+    //terminal+
+    termA_pub = nh.advertise<sensor_msgs::PointCloud2>("termA_cloud", 1);
+    termA_pose_pub = nh.advertise<visualization_msgs::Marker>("termA_pose", 1);
+    termA_grasp_pose_pub = nh.advertise<visualization_msgs::Marker>("termA_grasp_pose", 1);
+    ros::ServiceServer termA_service = nh.advertiseService("/termA_grasp_pose", get_terminal_pose);
+
+    // //terminal-
+    // termA_pub = nh.advertise<sensor_msgs::PointCloud2>("termA_cloud", 1);
+    // termA_pose_pub = nh.advertise<visualization_msgs::Marker>("termA_pose", 1);
+    // termA_grasp_pose_pub = nh.advertise<visualization_msgs::Marker>("termA_grasp_pose", 1);
+    // ros::ServiceServer termA_service = nh.advertiseService("/termA_grasp_pose", get_terminal_pose);
     ros::spin();
     
     return 0;

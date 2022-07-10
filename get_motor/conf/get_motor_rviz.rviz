@@ -9,6 +9,9 @@ Panels:
         - /PointCloud22
         - /Marker3
         - /Marker4
+        - /PointCloud23
+        - /Marker5
+        - /Marker6
         - /Axes1
       Splitter Ratio: 0.5
     Tree Height: 1109
@@ -178,26 +181,26 @@ Visualization Manager:
       Selectable: true
       Size (Pixels): 3
       Size (m): 0.009999999776482582
-      Style: Flat Squares
-      Topic: ""
+      Style: Points
+      Topic: /termA_cloud
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: visualization_marker
+      Marker Topic: /termA_pose
       Name: Marker
       Namespaces:
-        {}
+        my_namespace: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: visualization_marker
+      Marker Topic: /termA_grasp_pose
       Name: Marker
       Namespaces:
-        {}
+        my_namespace: true
       Queue Size: 100
       Value: true
     - Class: rviz/Camera
@@ -211,7 +214,7 @@ Visualization Manager:
       Unreliable: false
       Value: false
       Visibility:
-        "": true
+        Axes: true
         Grid: true
         Image: true
         Marker: true
@@ -255,7 +258,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.9567277431488037
+      Distance: 1.0356125831604004
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
