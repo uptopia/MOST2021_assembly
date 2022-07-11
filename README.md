@@ -31,6 +31,15 @@ git clone https://github.com/uptopia/MOST2021_assembly.git src
 catkin_make
 
 <terminal 1>
+. devel/setup.bash
+roslaunch get_motor get_motor.launch
+
+<terminal 2>
+. devel/setup.bash
+rosrun get_motor get_motor
+
+===========================
+<terminal 1>
 cd ~/realsense_ros
 . devel/setup.bash
 roslaunch realsense2_camera rs_rgbd.launch
@@ -61,6 +70,8 @@ cd ~/MOST2021_assembly
 rosrun get_screw_cloud get_screw_cloud
 ```
 
+### 執行手臂策略
+Method 1. 雙臂策略狀態機
 ```
 cd ~/dual_arm_ws
 . devel/setup.bash
@@ -77,3 +88,4 @@ roscore
 rosbag play -l MOST2021_assembly_rosbag.bag
 rostopic list 
 ```
+Method 2. FlexBe 雙臂策略
