@@ -1,3 +1,6 @@
 [submodule "lightweight_obj_detect"]
 	path = lightweight_obj_detect
 	url = https://github.com/ycxxn/lightweight_obj_detect
+[submodule "timda_dual_arm"]
+	path = timda_dual_arm
+	url = https://github.com/tku-iarc/timda_dual_arm.git
