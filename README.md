@@ -28,6 +28,18 @@ rqt_graph
 mkdir MOST2021_assembly
 cd MOST2021_assembly
 git clone https://github.com/uptopia/MOST2021_assembly.git src
+
+cd src
+git submodule init
+git submodule update
+
+cd timda_dual_arm
+git submodule init
+git submodule update 
+
+cd MOST2021_assembly
+catkin_make obj_detect_generate_messages
+catkin_make part_afford_seg_generate_messages
 catkin_make
 
 <terminal 1>

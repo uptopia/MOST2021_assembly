@@ -384,6 +384,7 @@ void motor_cloud_cb(const sensor_msgs::PointCloud2ConstPtr& organized_cloud_msg)
             cv::Rodrigues(rvec, rot);
             cout << "rvec:\n" << rvec
                  << "rot:\n"  << rot << endl;
+            grasp_msg.data.clear();
             grasp_msg.data.push_back(rot.at<float>(0, 0));
             grasp_msg.data.push_back(rot.at<float>(0, 1));
             grasp_msg.data.push_back(rot.at<float>(0, 2));
