@@ -1,0 +1,3 @@
+[submodule "lightweight_obj_detect"]
+	path = lightweight_obj_detect
+	url = https://github.com/ycxxn/lightweight_obj_detect
