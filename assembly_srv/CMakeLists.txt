@@ -13,8 +13,6 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   sensor_msgs
   message_generation
-  # obj_detect
-  # part_afford_seg
 )
 
 ## System dependencies are found with CMake's conventions
@@ -64,6 +62,7 @@ add_service_files(
   # Bboxes.srv
   # AffordSegOut.srv
   GraspPose.srv
+  TakePic.srv
 )
 
 ## Generate actions in the 'action' folder
@@ -111,12 +110,12 @@ generate_messages(
 ## LIBRARIES: libraries you create in this project that dependent projects also need
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
-# catkin_package(
-# #  INCLUDE_DIRS include
-#  LIBRARIES assembly_srv
-#  CATKIN_DEPENDS message_runtime 
-# #  DEPENDS system_lib
-# )
+catkin_package(
+#  INCLUDE_DIRS include
+ #LIBRARIES assembly_srv
+ CATKIN_DEPENDS message_runtime
+#  DEPENDS system_lib
+)
 
 ###########
 ## Build ##
@@ -124,10 +123,10 @@ generate_messages(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-# include_directories(
-# # include
-# ${catkin_INCLUDE_DIRS}
-# )
+include_directories(
+# include
+${catkin_INCLUDE_DIRS}
+)
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
@@ -152,7 +151,7 @@ generate_messages(
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+#  add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 # target_link_libraries(${PROJECT_NAME}_node

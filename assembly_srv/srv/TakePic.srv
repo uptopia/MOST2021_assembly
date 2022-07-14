@@ -1,0 +1,9 @@
+bool picture_pose_reached
+
+---
+bool data_check_correct
+sensor_msgs/PointCloud2 organized_cloud_ori
+sensor_msgs/Image rgb_img_ori
+sensor_msgs/Image rgb_img_cropped
+int64 crop_init_x
+int64 crop_init_y

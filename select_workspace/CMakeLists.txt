@@ -11,6 +11,8 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   rospy
   std_msgs
+  message_generation
+  assembly_srv
 )
 
 ## System dependencies are found with CMake's conventions
@@ -56,8 +58,9 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate services in the 'srv' folder
 # add_service_files(
 #   FILES
-#   Service1.srv
-#   Service2.srv
+#   TakePic.srv
+# #   Service1.srv
+# #   Service2.srv
 # )
 
 ## Generate actions in the 'action' folder
@@ -104,8 +107,8 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES select_workspace
-#  CATKIN_DEPENDS cv_bridge rospy std_msgs
+  LIBRARIES ${PROJECT_NAME}
+  CATKIN_DEPENDS cv_bridge rospy std_msgs message_runtime assembly_srv
 #  DEPENDS system_lib
 )
 
@@ -146,7 +149,8 @@ include_directories(
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(${PROJECT_NAME}_node
+# target_link_libraries(
+#   ${PROJECT_NAME}
 #   ${catkin_LIBRARIES}
 # )
 
@@ -160,7 +164,7 @@ include_directories(
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
 # catkin_install_python(PROGRAMS
-#   scripts/my_python_script
+#   scripts/select_workspace.py
 #   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 # )
 
