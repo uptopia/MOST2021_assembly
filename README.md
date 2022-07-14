@@ -1,10 +1,17 @@
 # MOST2021 Assembly
 
 ## Dependencies
+**To use VISION only**
 * Install [realsense-ros](https://github.com/IntelRealSense/realsense-ros)
 * Install [cv_bridge for Python3]()
 
-## Software environment
+**To use lightweight_obj_detect** (optional)
+* Requirements see [lightweight_obj_detect/README.md](https://github.com/ycxxn/lightweight_obj_detect/blob/main/README.md)
+
+**To use TIMDA dual arm** (optional)
+* Requirements see [timda_dual_arm/README.md](https://github.com/tku-iarc/timda_dual_arm/blob/6bcc5d341ad199a81be02582018ff8420166173e/README.md)
+
+## Software environment, Platform
 * Ubuntu 18.04, 20.04
 * ROS Melodic, Noetic
 * Python 3.6.9 (?)
@@ -24,24 +31,34 @@
 rqt_graph 
 <img src="readme_img/rosgraph_20220520_new.png" alt="drawing" width="300"/>  
 
+
+## Installation and Setup
+---
+### Clone this repo and submodules
 ```
 mkdir MOST2021_assembly
 cd MOST2021_assembly
-git clone https://github.com/uptopia/MOST2021_assembly.git src
+git clone --recursive https://github.com/uptopia/MOST2021_assembly.git src
+```
 
-cd src
-git submodule init
-git submodule update
+**To use VISION only, without lightweight_obj_detect, timda_dual_arm**
+* 在不需要編譯的資料夾(如lightweight_obj_detect, timda_dual_arm)中，創一個名為CATKIN_IGNORE的資料夾。
 
-cd timda_dual_arm
-git submodule init
-git submodule update 
+**To use lightweight_obj_detect** (optional)
+* Requirements see [lightweight_obj_detect/README.md](https://github.com/ycxxn/lightweight_obj_detect/blob/main/README.md)
 
+**To use TIMDA dual arm** (optional)
+* Requirements see [timda_dual_arm/README.md](https://github.com/tku-iarc/timda_dual_arm/blob/6bcc5d341ad199a81be02582018ff8420166173e/README.md)
+
+
+### Build
+```
 cd MOST2021_assembly
-catkin_make obj_detect_generate_messages
-catkin_make part_afford_seg_generate_messages
 catkin_make
+```
 
+## Run
+---
 <terminal 1>
 . devel/setup.bash
 roslaunch get_motor get_motor.launch
@@ -55,6 +72,12 @@ rosrun get_motor get_motor
 cd ~/realsense_ros
 . devel/setup.bash
 roslaunch realsense2_camera rs_rgbd.launch
+
+或者播放預錄好的rosbag
+roscore
+cd ~/MOST2021_assembly
+rosbag play -l MOST2021_assembly_rosbag.bag
+rostopic list 
 
 <terminal 2>
 cd ~/MOST2021_assembly
@@ -94,10 +117,4 @@ cd ~/dual_arm_ws
 rosrun strategy assembly_grasp_strategy.py
 ```
 
-### rosbag
-```
-roscore
-rosbag play -l MOST2021_assembly_rosbag.bag
-rostopic list 
-```
 Method 2. FlexBe 雙臂策略
